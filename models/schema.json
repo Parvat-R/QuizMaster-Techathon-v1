@@ -1,0 +1,74 @@
+{
+    "$students": {
+        "student_id": {
+            "id": "id",
+            "username": "",
+            "name": "",
+            "email": "",
+            "password": "",
+            "dob": "",
+            "created_on": ""
+        }
+    },
+    "$teachers": {
+        "teacher_id": {
+            "id": "",
+            "username": "",
+            "email": "",
+            "password": "",
+            "dob": "",
+            "created_on": ""
+        }
+    },
+    "$classes": {
+        "class_id": {
+            "id": "id",
+            "name": "str",
+            "created_on": "str",
+            "students": [
+                "student_id"
+            ],
+            "teacher_id": "teacher_id"
+        }
+    },
+    "$quiz": {
+        "quiz_id": {
+            "id": "id",
+            "title": "str",
+            "description": "str",
+            "teacher_id": "id",
+            "class_ids": "id",
+            "excluded_students_id": [],
+            "public": false,
+            "created_on": "datetime",
+            "question_ids": []
+        }
+    },
+    "$questions": {
+        "question_id": {
+            "id": "id",
+            "created_by": "teacher_id",
+            "created_on": "datetime",
+            "marks": 0.0,
+            "type": "$TYPE",
+            "data": {
+                "..$TYPE": "json"
+            }
+        }
+    },
+    "$TYPE": {
+        "mcq": {
+            "title": "str",
+            "options": {
+                "opt_id": "opt_val"
+            },
+            "correct_options": [
+                "opt_id"
+            ]
+        },
+        "trueorfalse": {
+            "title": "str",
+            "answer": false
+        }
+    }
+}
