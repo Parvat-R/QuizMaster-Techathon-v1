@@ -111,7 +111,7 @@ So, when a student registers, a new data is added in the “Students” json. So
 	},
 	"trueorfalse": {
 		"title": "str",
-		"answer": bool
+		"answer": "bool"
 	} 
 }
 ```
