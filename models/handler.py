@@ -175,6 +175,9 @@ class ClassHandler:
     def remove_student_from_class(self, class_id: str, student_id: str):
         return self.collection.update_one({'class_id': class_id}, {'$pull': {'student_ids': student_id}})
     
+    def get_student_classes(self, student_id: str):
+        return self.collection.find({'student_ids': student_id}).distinct('class_id')
+    
 class QuizHandler:
     def __init__(self, handler: Handler):
         self.handler = handler
@@ -199,6 +202,8 @@ class QuizHandler:
     def get_quiz_questions(self, quiz_id: str):
         if (a := self.collection.find_one({'quiz_id': quiz_id})):
             return a.get('question_ids')
+        else:
+            return []
     
     def remove_question_from_quiz(self, quiz_id: str, question_id: str):
         return self.collection.update_one({'quiz_id': quiz_id}, {'$pull': {'question_ids': question_id}})
@@ -222,6 +227,9 @@ class QuizHandler:
         
     def remove_excluded_student_from_quiz(self, quiz_id: str, student_id: str):
         return self.collection.update_one({'quiz_id': quiz_id}, {'$pull': {'excluded_student_ids': student_id}})
+
+    def get_student_class_quizzes(self, student_id: str, class_id: str):
+        return self.collection.find({'class_id': class_id, 'exclude': {'$ne': student_id}}).distinct('quiz_id')
     
 class QuestionHandler:
     def __init__(self, handler: Handler):
@@ -259,4 +267,27 @@ class QuestionHandler:
                 return data.get('answer')
     
         return None
+
+class ResultHandler :
+    def __init__(self, handler: Handler):
+        self.handler = handler
+        self.collection = handler.results
+        
+    def create_result(self, result: Result):
+        result.id = generate_uuid()
+        return self.collection.insert_one(result.model_dump())
     
+    def get_result(self, result_id: str):
+        return self.collection.find_one({'result_id': result_id})
+    
+    def get_student_quiz_results(self, student_id: str, quiz_id: str):
+        return self.collection.find({'student_id': student_id, 'quiz_id': quiz_id})
+    
+    def get_quiz_attended_students(self, quiz_id: str):
+        return self.collection.find({'quiz_id': quiz_id}).distinct('student_id')
+    
+    def get_student_attended_quizzes(self, student_id: str):
+        return self.collection.find({'student_id': student_id}).distinct('quiz_id')
+    
+    def get_class_attended_quizzes(self, class_id: str):
+        return self.collection.find({'class_id': class_id}).distinct('quiz_id')

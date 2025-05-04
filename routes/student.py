@@ -4,14 +4,18 @@ from flask import (
     redirect, url_for, render_template, flash,
     get_flashed_messages
 )
-from models.models import Student, Session
-from models.handler import Handler, StudentHandler, SessionHandler
+from models.models import Student, Session, Result
+from models.handler import Handler, StudentHandler, ResultHandler, ClassHandler, QuizHandler, QuestionHandler, SessionHandler
 
 bp = Blueprint('student', __name__, url_prefix='/student')
 
 handler = Handler()
 student_handler = StudentHandler(handler)
 session_handler = SessionHandler(handler)
+quiz_handler = QuizHandler(handler)
+question_handler = QuestionHandler(handler)
+class_handler = ClassHandler(handler)
+result_handler = ResultHandler(handler)
 
 @bp.before_request
 def before_request():
@@ -109,5 +113,65 @@ def register():
     return render_template('student/register.html')
 
 @bp.route('/')
-def index():    
-    return render_template('student/index.html')
+def index():
+    
+    classes = []
+    
+    for class_ in class_handler.get_student_classes(session['user_id']):
+        classes.append(class_)
+    
+    return render_template('student/index.html', classes = classes)
+
+
+@bp.route('/class/<class_id>')
+def class_(class_id):
+    quizzes = []
+    
+    for quiz_id in quiz_handler.get_student_class_quizzes(session['user_id'], class_id):
+        quizzes.append(quiz_id)
+    
+    return render_template('student/class.html', class_ = class_handler.get_class(class_id))
+
+
+@bp.route('/quiz/<quiz_id>')
+def quiz(quiz_id):
+    quiz = quiz_handler.get_quiz(quiz_id)
+    questions = []
+    
+    if not quiz:
+        return redirect(url_for('student.index'))
+    
+    for question_id in quiz_handler.get_quiz_questions(quiz_id):
+        questions.append(question_handler.get_question(question_id))
+    
+    return render_template('student/quiz.html', quiz = quiz, questions = questions)
+
+
+@bp.route('/quiz/<quiz_id>/submit', methods=['POST'])
+def submit_quiz(quiz_id):
+    quiz = quiz_handler.get_quiz(quiz_id)
+    
+    if not quiz:
+        flash(f'Quiz #{quiz_id} does not exist!', 'error')
+        return redirect(url_for('student.index'))
+    
+    questions_ids = []
+    
+    for question_id in quiz_handler.get_quiz_questions(quiz_id):
+        questions_ids.append(question_handler.get_question(question_id))
+    
+    answers = []
+    for question_id in questions_ids:
+        answers.append(request.form.get(str(question_id)))
+        result = Result(
+            student_id=session['user_id'],
+            quiz_id=quiz_id,
+            question_id=question_id,
+            option_id=answers[-1],
+            marks=0,
+            created_on=datetime.datetime.now()
+        )
+        result_handler.create_result(result)
+    
+    return render_template('student/quiz_submit.html', quiz = quiz)
+    

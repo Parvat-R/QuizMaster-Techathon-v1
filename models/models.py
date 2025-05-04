@@ -96,6 +96,7 @@ class Result(BaseModel):
     question_id: str = ""
     option_id: str = ""
     marks: float
+    created_on: datetime
     
 
 # --------------------------------------
