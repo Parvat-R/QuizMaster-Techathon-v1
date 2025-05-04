@@ -230,8 +230,8 @@ class QuizHandler:
 
     def get_student_class_quizzes(self, student_id: str, class_id: str):
         return self.collection.find({'class_id': class_id, 'exclude': {'$ne': student_id}}).distinct('quiz_id')
-    
-    
+
+
 class QuestionHandler:
     def __init__(self, handler: Handler):
         self.handler = handler
