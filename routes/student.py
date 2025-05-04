@@ -125,10 +125,19 @@ def index():
 
 @bp.route('/class/<class_id>')
 def class_(class_id):
+    if class_handler.get_class(class_id) is None:
+        flash(f"Class #{class_id} not found!", "error")
+        return redirect("student.class_") 
+    
     quizzes = []
     
-    for quiz_id in quiz_handler.get_student_class_quizzes(session['user_id'], class_id):
-        quizzes.append(quiz_id)
+    user_id = session['user_id']
+    attended_quizzes = quiz_handler.get_student_class_quizzes(user_id, class_id)
+    
+    for _quiz in quiz_handler.get_student_class_quizzes(user_id, class_id):
+        if _quiz:
+            _quiz['attended'] = _quiz.id in attended_quizzes
+            quizzes.append(_quiz)
     
     return render_template('student/class.html', class_ = class_handler.get_class(class_id))
 
