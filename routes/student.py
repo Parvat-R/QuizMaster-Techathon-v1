@@ -19,7 +19,7 @@ result_handler = ResultHandler(handler)
 
 @bp.before_request
 def before_request():
-    if request.endpoint in ['static', 'student.login', 'student.register', 'student.logout']:
+    if request.endpoint in ['static', 'student.login', 'student.register']:
         return
     session_id = session.get('session_id', None)
     user_id = session.get('user_id', None)
@@ -96,7 +96,7 @@ def register():
             password=request.form['password'],
             name=request.form['name'],
             email=request.form['email'],
-            dob=request.form['dob'],
+            dob=datetime.datetime.strptime(request.form['dob'], 'dd-mm-yyyy'),
             created_on=datetime.datetime.now()
         )
         
@@ -114,7 +114,6 @@ def register():
 
 @bp.route('/')
 def index():
-    
     classes = []
     
     for class_ in class_handler.get_student_classes(session['user_id']):

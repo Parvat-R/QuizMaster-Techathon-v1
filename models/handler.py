@@ -45,7 +45,7 @@ class StudentHandler:
     def create_student(self, student: Student):
         if self.student_username_exists(student.username):
             raise Exception('Username already exists')
-        student.id = generate_uuid()
+        student.student_id = generate_uuid()
         student.password = hash_password(student.password)
         if self.collection.insert_one(student.model_dump()):
             return student
@@ -90,7 +90,7 @@ class TeacherHandler:
             raise Exception('Username already exists')
         if self.teacher_email_exists(teacher.email):
             raise Exception('Email already exists')
-        teacher.id = generate_uuid()
+        teacher.teacher_id = generate_uuid()
         teacher.password = hash_password(teacher.password)
         return self.collection.insert_one(teacher.model_dump())
     
@@ -134,10 +134,10 @@ class SessionHandler:
         return session
     
     def create_session(self, session: Session):
-        session.id = generate_uuid()
+        session.session_id = generate_uuid()
         session.created_on = datetime.now()
         if self.sessions.insert_one(session.model_dump()):
-            return session.id
+            return session.session_id
         return None
     
     def check_session(self, session_id: str, user_id, ip_address: str):
@@ -156,7 +156,7 @@ class ClassHandler:
         return self.collection.find_one({'class_id': class_id})
     
     def create_class(self, class_: Class):
-        class_.id = generate_uuid()
+        class_.class_id = generate_uuid()
         return self.collection.insert_one(class_.model_dump())
     
     def change_class_name(self, class_id: str, name: str):
@@ -178,6 +178,12 @@ class ClassHandler:
     def get_student_classes(self, student_id: str):
         return self.collection.find({'student_ids': student_id}).distinct('class_id')
     
+    def get_teacher_classes(self, teacher_id: str):
+        return self.collection.find({'teacher_id': teacher_id}).distinct('class_id')
+
+    def class_delete(self, class_id: str):
+        return self.collection.delete_one({'class_id': class_id})
+    
 class QuizHandler:
     def __init__(self, handler: Handler):
         self.handler = handler
@@ -187,7 +193,7 @@ class QuizHandler:
         return self.collection.find_one({'quiz_id': quiz_id})
     
     def create_quiz(self, quiz: Quiz):
-        quiz.id = generate_uuid()
+        quiz.quiz_id = generate_uuid()
         return self.collection.insert_one(quiz.model_dump())
     
     def change_quiz_title(self, quiz_id: str, title: str):
@@ -231,6 +237,9 @@ class QuizHandler:
     def get_student_class_quizzes(self, student_id: str, class_id: str):
         return self.collection.find({'class_id': class_id, 'exclude': {'$ne': student_id}}).distinct('quiz_id')
 
+    def get_teacher_class_quizzes(self, teacher_id: str, class_id: str):
+        return self.collection.find({'class_id': class_id, 'teacher_id': teacher_id}).distinct('quiz_id')
+
 
 class QuestionHandler:
     def __init__(self, handler: Handler):
@@ -252,7 +261,7 @@ class QuestionHandler:
             return a.get('data')
         
     def create_question(self, question: Question):
-        question.id = generate_uuid()
+        question.question_id = generate_uuid()
         return self.collection.insert_one(question.model_dump())
     
     def delete_question(self, question_id: str):
@@ -275,7 +284,7 @@ class ResultHandler :
         self.collection = handler.results
         
     def create_result(self, result: Result):
-        result.id = generate_uuid()
+        result.result_id = generate_uuid()
         return self.collection.insert_one(result.model_dump())
     
     def get_result(self, result_id: str):

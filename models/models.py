@@ -26,22 +26,22 @@ QuestionDataType = Union[MCQType, TrueOrFalseType]
 # --------------------------------------
 
 class Student(BaseModel):
-    id: str = ""
+    student_id: str = ""
     username: str
     name: str
     email: EmailStr
     password: str
-    dob: str  # Can be changed to datetime if stored that way
+    dob: datetime  # Can be changed to datetime if stored that way
     created_on: datetime
 
 
 class Teacher(BaseModel):
-    id: str = ""
+    teacher_id: str = ""
     username: str
     email: EmailStr
     name: str
     password: str
-    dob: str  # Can be changed to datetime
+    dob: datetime  # Can be changed to datetime
     created_on: datetime
 
 
@@ -50,9 +50,9 @@ class Teacher(BaseModel):
 # --------------------------------------
 
 class Class(BaseModel):
-    id: str = ""
+    class_id: str = ""
     name: str
-    created_on: str  # Can be datetime if parsed accordingly
+    created_on: datetime  # Can be datetime if parsed accordingly
     students: List[str]  # List of student_ids
     teacher_id: str = ""
 
@@ -62,7 +62,7 @@ class Class(BaseModel):
 # --------------------------------------
 
 class Quiz(BaseModel):
-    id: str = ""
+    quiz_id: str = ""
     title: str
     teacher_id: str = ""
     description: str
@@ -78,7 +78,7 @@ class Quiz(BaseModel):
 # --------------------------------------
 
 class Question(BaseModel):
-    id: str = ""
+    question_id: str = ""
     created_by: str  # teacher_id
     created_on: datetime
     marks: float
@@ -90,7 +90,7 @@ class Question(BaseModel):
 # Result Model
 # --------------------------------------
 class Result(BaseModel):
-    id: str = ""
+    result_id: str = ""
     student_id: str = ""
     quiz_id: str = ""
     question_id: str = ""
@@ -103,7 +103,7 @@ class Result(BaseModel):
 # Result Model
 # --------------------------------------
 class Session(BaseModel):
-    id: str = ""
+    session_id: str = ""
     user_id: str
     user_type: str
     created_on: datetime
