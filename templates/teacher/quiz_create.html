@@ -2,6 +2,9 @@
 {% block content %}
 
     <div id="quiz">
+        <div class="main">
+            <h2>Class: {{ class_.name }}</h2>
+        </div>
         <div class="head">
             <input id="title" name="title" value="Untitled Quiz" />
             <input id="description" name="description" value="Description" />
@@ -87,6 +90,37 @@ function add_question(questionData = null) {
 function remove_question(questionId) {
     // Delete the question with the given ID
     delete questions[questionId];
+    
+    // Re-render all questions
+    render_questions();
+    
+    // Update JSON preview
+    updateJsonPreview();
+}
+
+// Remove an option from a question
+function remove_option(questionId, optIndex) {
+    // Get the question
+    const question = questions[questionId];
+    
+    // Make sure we don't remove the last option
+    if (question.options.length <= 1) {
+        alert("Cannot remove the last option. Questions must have at least one option.");
+        return;
+    }
+    
+    // Get the option being removed
+    const removedOption = question.options[optIndex];
+    
+    // Remove the option from the options array
+    question.options.splice(optIndex, 1);
+    
+    // Remove the option from correct_options if it was selected
+    if (question.correct_options.includes(removedOption.opt_id)) {
+        question.correct_options = question.correct_options.filter(
+            id => id !== removedOption.opt_id
+        );
+    }
     
     // Re-render all questions
     render_questions();
@@ -191,10 +225,17 @@ function render_questions() {
             label.htmlFor = `${questionId}_${option.opt_id}`;
             label.textContent = 'Correct';
             
+            // Create remove option button
+            const removeOptBtn = document.createElement('button');
+            removeOptBtn.textContent = 'Remove';
+            removeOptBtn.classList.add('remove-option');
+            removeOptBtn.addEventListener('click', () => remove_option(questionId, index));
+            
             // Append elements to option div
             optionDiv.appendChild(checkbox);
             optionDiv.appendChild(label);
             optionDiv.appendChild(optInput);
+            optionDiv.appendChild(removeOptBtn);
             
             // Append option to options container
             optionsDiv.appendChild(optionDiv);
@@ -397,18 +438,13 @@ document.addEventListener('DOMContentLoaded', function() {
     margin-right: 10px;
 }
 
-.remove-question, .add-option {
+.remove-question {
     background-color: #f44336;
     color: white;
     border: none;
     padding: 5px 10px;
     border-radius: 4px;
     cursor: pointer;
-}
-
-.add-option {
-    background-color: #4CAF50;
-    margin-top: 10px;
 }
 
 .options {
@@ -425,6 +461,27 @@ document.addEventListener('DOMContentLoaded', function() {
     flex-grow: 1;
     padding: 5px;
     margin-left: 10px;
+    margin-right: 10px;
+}
+
+.remove-option {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 3px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.add-option {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 10px;
 }
 
 #controls {

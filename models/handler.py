@@ -140,11 +140,11 @@ class SessionHandler:
             return None
         return session
     
-    def create_session(self, session: Session):
-        session.session_id = generate_uuid()
-        session.created_on = datetime.now()
-        if self.sessions.insert_one(session.model_dump()):
-            return session.session_id
+    def create_session(self, _session: Session):
+        _session.session_id = generate_uuid()
+        _session.created_on = datetime.now()
+        if self.sessions.insert_one(_session.model_dump()):
+            return _session.session_id
         return None
     
     def check_session(self, session_id: str, user_id, ip_address: str):

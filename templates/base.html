@@ -8,6 +8,15 @@
     {% block head %}{% endblock %}
 </head>
 <body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div id="notifications">
+            {% for category, message in messages %}
+                <li class="noti {{ category }}">{{ message }}</li>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endwith %}
     <div id="nav">
         <div class="navbar">
             <div class="left"></div>
@@ -15,13 +24,13 @@
                 <div class="menu">
                     <a href="/">Home</a>
                     {% if session.get('user_type', None) == 'student' %}
-                    <a href="{{ url_for('student.classes') }}">Classes</a>
-                    <a href="{{ url_for('student.profile') }}">Profile</a>
+                    <a href="{{ url_for('student.index') }}">Classes</a>
+                    <a href="{{ url_for('student.index') }}">Profile</a>
                     <a href="{{ url_for('student.attend_quiz') }}">Attend Quiz</a>
                     {% elif session.get('user_type', None) == 'teacher' %}
-                    <a href="{{ url_for('teacher.classes') }}">Classes</a>
-                    <a href="{{ url_for('teacher.profile') }}">Profile</a>
-                    <a href="{{ url_for('teacher.create_quiz') }}">Create Quiz</a>
+                    <a href="{{ url_for('teacher.index') }}">Classes</a>
+                    <a href="{{ url_for('teacher.index') }}">Profile</a>
+                    <a href="{{ url_for('teacher.index') }}">Create Quiz</a>
                     {% else %}
                     <a href="{{ url_for('student.login') }}">Student</a>
                     <a href="{{ url_for('teacher.login') }}">Teacher</a>

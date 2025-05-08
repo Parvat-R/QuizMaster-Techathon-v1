@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="title">
+    <h1>Welcome <span class="name">{{teacher.name}}</span></h1>
+</div>
+<h1>Your Classes</h1>
+<div class="classes">
+    {% for i in classes %} 
+    <a href="{{ url_for('teacher.class_with_id', class_id = i.class_id) }}" class="_class" class-id="{{i.class_id}}">
+        <h2>{{i.name}}</h2>
+        <p>{{i.created_on}}</p>
+    </a>
+    {% endfor %}
+
+    <div class="class">
+        <form action="{{ url_for('teacher.class_create') }}" method="post">
+            <input type="text" name="name" id="name" required />
+            <input type="text" name="students" id="students" placeholder="username1, username2, ..." />
+            <button class="new_class">New Class</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -63,19 +63,17 @@ def login():
             if not student:
                 return render_template('student/login.html', error='Invalid username or password')
             
-            session_id = session_handler.create_session(student['id'])
-            session['session_id'] = session_id
             ip_address = request.remote_addr if request.remote_addr else '-1'
             
             _session = Session(
-                user_id=student['id'],
+                user_id=student['student_id'],
                 user_type='student',
                 created_on=datetime.datetime.now(),
                 ip_address=ip_address
             )
             
             session["session_id"] = session_handler.create_session(_session)
-            session["user_id"] = student['id']  # Added missing user_id in session
+            session["user_id"] = student['student_id']  # Added missing user_id in session
             session["user_type"] = "student"    # Added missing user_type in session
             
             return redirect(url_for('student.index'))
@@ -97,7 +95,7 @@ def register():
         return render_template('student/register.html')
     elif request.method == 'POST':
         try:
-            dob = datetime.datetime.strptime(request.form['dob'], '%d-%m-%Y')  # Fixed date format
+            dob = datetime.datetime.fromisoformat(request.form['dob'])  # Fixed date format
         except ValueError:
             return render_template('student/register.html', error='Invalid date format. Use dd-mm-yyyy')
             
@@ -125,14 +123,15 @@ def register():
 @bp.route('/')
 def index():
     classes = []
-    
     for class_ in class_handler.get_student_classes(session['user_id']):
-        classes.append(class_)
-    
-    return render_template('student/index.html', classes=classes)
+        classes.append(
+            class_handler.get_class(class_)
+        )
+    student = student_handler.get_student(session['user_id'])
+    return render_template('student/index.html', classes=classes, student=student)
 
 @bp.route('/class/<class_id>')
-def class_(class_id):
+def class_with_id(class_id):
     class_obj = class_handler.get_class(class_id)
     if class_obj is None:
         flash(f"Class #{class_id} not found!", "error")
@@ -144,12 +143,28 @@ def class_(class_id):
     attended_quizzes = quiz_handler.get_student_class_quizzes(user_id, class_id)
     
     for _quiz in quiz_handler.get_student_class_quizzes(user_id, class_id):
+        _quiz = quiz_handler.get_quiz(_quiz)
         if _quiz:
-            _quiz['attended'] = _quiz.id in attended_quizzes
-            quizzes.append(_quiz)
+            _quiz['attended'] = _quiz.quiz_id in attended_quizzes
+            quizzes.append(
+                _quiz.get_quiz(_quiz)
+            )
     
     return render_template('student/class.html', class_=class_obj, quizzes=quizzes)  # Added quizzes to template
 
+
+@bp.route("/class/join", methods = ['POST'])
+def class_join():
+    class_id = request.form.get("class_id", None)
+    if class_id and class_handler.get_class(class_id):
+        if session['user_id'] not in class_handler.get_class_students(class_id):
+            class_handler.add_student_to_class(class_id, session['user_id'])
+            flash("Class joined!")
+        else:
+            flash("Already in class!", 'warning')
+        return redirect(url_for('student.index'))
+    flash(f"Could not join class #{class_id}")
+    return redirect(url_for("student.index"))
 
 @bp.route('/attend')
 def attend_quiz():

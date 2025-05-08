@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+    <h3>Class - <span>{{class_.name}}</span></h3>
+    <div class="panel">
+        <div class="left">
+            <div class="class_details">
+                <p>Created On:</p>
+                <p>{{class_.created_on}}</p>
+            </div>
+            <div class="quizzes">
+                <p>Quizzes:</p>
+                {% for i in quizzes %}
+                    <li><a href="{{ url_for('student.quiz', quiz_id = i.quiz_id) }}">{{i.title}}</a></li>
+                {% endfor %}
+                <form action="{{ url_for('student.attend_quiz') }}"></form>
+            </div>
+
+        </div>
+    </div>
+{% endblock %}

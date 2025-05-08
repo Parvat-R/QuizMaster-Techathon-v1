@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+    <h3>Class - <span>{{class_.name}}</span></h3>
+    <div class="panel">
+        <div class="left">
+            <div class="class_details">
+                <p>Created On:</p>
+                <p>{{class_.created_on}}</p>
+            </div>
+            <div class="quizzes">
+                <p>Quizzes:</p>
+                {% for i in quizzes %}
+                    <li><a href="{{ url_for('teacher.quiz', quiz_id = i.quiz_id) }}">{{i.title}}</a></li>
+                {% endfor %}
+                <a href="{{ url_for('teacher.quiz_create', class_id=class_.class_id) }}">
+                   <p>+</p> 
+                </a>
+            </div>
+
+        </div>
+        <div class="right">
+            <ul class="students">
+                <p>Students:</p>
+                {% for i in class_.students %}
+                    <li>{{i}}</li>
+                {% endfor %}
+                <li>
+                    <form action="{{ url_for('teacher.class_add_student', class_id = class_.class_id) }}" method="post">
+                        <input type="text" name="username" id="username" placeholder="username">
+                        <input type="submit" value="+">
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+{% endblock %}

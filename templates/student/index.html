@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="title">
+    <h1>Welcome <span class="name">{{student.name}}</span></h1>
+</div>
+<h1>Your Classes</h1>
+<div class="classes">
+    {% for i in classes %} 
+    <a href="{{ url_for('student.class_with_id', class_id = i.class_id) }}" class="_class" class-id="{{i.class_id}}">
+        <h2>{{i.name}}</h2>
+        <p>{{i.created_on}}</p>
+    </a>
+    {% endfor %}
+
+    <div class="class">
+        <form action="{{ url_for('student.class_join') }}" method="post">
+            <input type="text" name="class_id" id="name" required />
+            <button class="new_class">Join Class</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

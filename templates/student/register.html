@@ -4,32 +4,32 @@
     <title>Login | Quiz Master</title>
 {% endblock %}
 {% block content %}
-    <h1>Login As A Student.</h1>
+    <h1>Register As A Student.</h1>
     <p>Welcome Back! We are glad to see you again.</p>
-    <form action="" method="post">
+    <form action="{{ url_for('student.register') }}" method="post">
         <div class="form-group">
             <label for="username">Name: </label>
-            <input type="text" name="Name" id="Name" placeholder="John Doe"><br><br>
+            <input type="text" name="name" id="name" placeholder="John Doe" required/>
         </div>
         <div class="form-group">
             <label for="username">Dob: </label>
-            <input type="date" name="dob" id="dob" placeholder="dd-mm-yyyy"><br><br>
+            <input type="date" name="dob" id="dob" placeholder="dd-mm-yyyy" required/>
         </div>
         <div class="form-group">
             <label for="username">Username: </label>
-            <input type="text" name="username" id="username" placeholder="john_doe"><br><br>
+            <input type="text" name="username" id="username" placeholder="john_doe" required/>
         </div>
         <div class="form-group">
             <label for="username">Email: </label>
-            <input type="text" name="email" id="email" placeholder="john_doe@email.com"><br><br>
+            <input type="text" name="email" id="email" placeholder="john_doe@email.com" required/>
         </div>
         <div class="form-group">
             <label for="password">Password: </label>
-            <input type="password" name="password" id="password" placeholder="password"><br><br>
+            <input type="password" name="password" id="password" placeholder="password" required/>
         </div>
         <div class="form-group">
-            <input type="submit" value="Login"><br>
+            <input type="submit" value="Register" required/>
         </div>
     </form>
-    <p>Don't have an account? <a href="{{ url_for('student.register') }}">Register</a></p>
+    <p>Already have an account? <a href="{{ url_for('student.login') }}">Login</a></p>
 {% endblock %}

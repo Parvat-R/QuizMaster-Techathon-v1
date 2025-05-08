@@ -7,12 +7,13 @@ from flask import (
 from utils import generate_uuid
 from utils.chatgpt_api import generate_quiz_questions, create_quiz_prompt, process_questions
 from models.models import MCQType, Teacher, Session, Class, Question, Quiz, QuizPrompt, TrueOrFalseType
-from models.handler import Handler, TeacherHandler, SessionHandler, ClassHandler, QuizHandler, QuestionHandler
+from models.handler import Handler, StudentHandler, TeacherHandler, SessionHandler, ClassHandler, QuizHandler, QuestionHandler
 
 bp = Blueprint('teacher', __name__, url_prefix='/teacher')
 
 handler = Handler()
 teacher_handler = TeacherHandler(handler)
+student_handler = StudentHandler(handler)
 session_handler = SessionHandler(handler)
 quiz_handler = QuizHandler(handler)
 question_handler = QuestionHandler(handler)
@@ -53,8 +54,16 @@ def after_request(response):
 
 """ USER FUNCTIONS"""
 @bp.route('/')
-def index():    
-    return render_template('teacher/index.html')
+def index():
+    teacher_id = session['user_id']
+    teacher = session['user_data']
+    
+    if not teacher:
+        teacher = teacher_handler.get_teacher(teacher_id)
+    
+    classes = [class_handler.get_class(i) for i in  class_handler.get_teacher_classes(teacher_id)]
+    
+    return render_template('teacher/index.html', classes = classes, teacher = teacher)
 
 
 @bp.route('/login', methods=['GET', 'POST'])
@@ -72,19 +81,18 @@ def login():
             if not teacher:
                 return render_template('teacher/login.html', error='Invalid username or password')
             
-            session_id = session_handler.create_session(teacher['id'])
-            session['session_id'] = session_id
             ip_address = request.remote_addr if request.remote_addr else '-1'
             
             _session = Session(
-                user_id=teacher['id'],
+                user_id=teacher['teacher_id'],
                 user_type='teacher',
                 created_on=datetime.now(),
                 ip_address=ip_address
             )
-            
             session["session_id"] = session_handler.create_session(_session)
-            
+            session["user_id"] = teacher['teacher_id']
+            session["user_type"] = 'teacher'
+
             return redirect(url_for('teacher.index'))
         
         return render_template('teacher/login.html', error='Invalid username or password')
@@ -103,12 +111,13 @@ def register():
     if request.method == 'GET':
         return render_template('teacher/register.html')
     elif request.method == 'POST':
+        print(datetime.fromisoformat)
         teacher = Teacher(
             username=request.form['username'],
             password=request.form['password'],
             name=request.form['name'],
             email=request.form['email'],
-            dob=datetime.strptime(request.form['dob'], 'dd-mm-yyyy'), #request.form['dob'],
+            dob=datetime.fromisoformat(request.form['dob']), #request.form['dob'],
             created_on=datetime.now()
         )
         
@@ -128,40 +137,41 @@ def register():
 
 
 """ CLASS FUNCTIONS """
-@bp.route('/classes')
-def class_():
-    classes = []
-    for class_id in class_handler.get_teacher_classes(session['user_id']):
-        classes.append(class_handler.get_class(class_id))
-    return render_template('teacher/class.html', classes = classes)
-
-
 @bp.route('/class/<class_id>')
 def class_with_id(class_id):
+    
     if (class_ := class_handler.get_class(class_id)) is None:
         flash(f"Class #{class_id} not found!", "error")
-        return redirect("teacher.class_")
+        return redirect("teacher.index")
     
     quizzes = []
     for _quiz in quiz_handler.get_teacher_class_quizzes(session['user_id'], class_id):
         if _quiz:
-            quizzes.append(_quiz)
+            quizzes.append(
+                quiz_handler.get_quiz(_quiz)
+            )
      
     return render_template('teacher/class.html', class_ = class_, quizzes = quizzes)
 
 
 @bp.route('/class/create', methods = ['POST'])
 def class_create():
+    students = request.form['students'].split(',')
+    for i in students:
+        if not student_handler.get_student_from_username(i):
+           students.remove(i)
+            
     new_class = Class(
         class_id=generate_uuid(),
         name=request.form['name'],
         teacher_id=session['user_id'],
         created_on=datetime.now(),
-        students=request.form['students'].split(',')
+        students=students
     )
+    
     result = class_handler.create_class(new_class)
     if result:
-        return new_class.model_dump()
+        return redirect(url_for('teacher.index'))
     return {
         "error": "error"
     }
@@ -180,6 +190,18 @@ def class_delete():
     return {
         'success': False
     }
+    
+@bp.route('/class/<class_id>/add_student', methods = ['POST'])
+def class_add_student(class_id):
+    student_username = request.form.get('username', None)
+    if not student_username:
+        flash(f'Student @{student_username} not found!', 'error')
+        return redirect(url_for('teacher.class_with_id', class_id=class_id))
+    if not student_handler.get_student_from_username(student_username):
+        return redirect(url_for('teacher.class_with_id', class_id=class_id))
+    class_handler.add_student_to_class(class_id, student_username)
+    return redirect(url_for('teacher.class_with_id', class_id=class_id))
+    
 
 
 """ QUIZ FUNCTIONS """
@@ -196,12 +218,13 @@ def quiz(quiz_id):
     
     return render_template('teacher/quiz.html', quiz = quiz, questions = questions)
 
-@bp.get('/quiz/create')
-def quiz_create():
-    return render_template('teacher/quiz_create.html')
+@bp.get('/quiz/create/<class_id>')
+def quiz_create(class_id):
+    class_ = class_handler.get_class(class_id)
+    return render_template('teacher/quiz_create.html', class_ = class_)
 
-@bp.route('/quiz/create', methods=['POST'])
-def quiz_create_post():
+@bp.route('/quiz/create/<class_id>', methods=['POST'])
+def quiz_create_post(class_id):
     # Check if request is JSON
     if not request.is_json:
         if request.content_type and 'application/json' not in request.content_type:
@@ -219,10 +242,12 @@ def quiz_create_post():
         
         # Create Quiz object
         new_quiz = Quiz(
+            quiz_id=generate_uuid(),
             title=data['title'],
             description=data['description'],
             teacher_id=session.get('user_id', ''),
             created_on=datetime.now(),
+            class_id=class_id,
             question_ids=[]  # We'll add questions later
         )
         
@@ -310,8 +335,8 @@ def quiz_create_post():
         
         # Add excluded students if provided
         if 'excluded_students_id' in data and isinstance(data['excluded_students_id'], list):
-            for student_id in data['excluded_students_id']:
-                quiz_handler.add_excluded_student_to_quiz(quiz_id, student_id)
+            for student_username in data['excluded_students_id']:
+                quiz_handler.add_excluded_student_to_quiz(quiz_id, student_username)
         
         # Return success response with quiz ID
         return jsonify({

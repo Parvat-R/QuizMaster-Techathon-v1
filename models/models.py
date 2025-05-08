@@ -66,7 +66,7 @@ class Quiz(BaseModel):
     title: str
     teacher_id: str = ""
     description: str
-    class_id: str = ""
+    class_id: str
     excluded_students_id: List[str] = []
     public: bool = False
     created_on: datetime
