@@ -7,8 +7,8 @@
                 <p>Created On:</p>
                 <p>{{class_.created_on}}</p>
             </div>
+            <p>Quizzes:</p>
             <div class="quizzes">
-                <p>Quizzes:</p>
                 {% for i in quizzes %}
                     <li><a href="{{ url_for('student.quiz', quiz_id = i.quiz_id) }}">{{i.title}}</a></li>
                 {% endfor %}

@@ -183,6 +183,9 @@ def quiz(quiz_id):
     for question_id in quiz_handler.get_quiz_questions(quiz_id):
         questions.append(question_handler.get_question(question_id))
     
+    if session['user_id'] in result_handler.get_quiz_attended_students(quiz_id):
+        return render_template('student/quiz_submit.html', quiz=quiz, questions = questions, result_handler = result_handler)
+    
     return render_template('student/quiz.html', quiz=quiz, questions=questions)
 
 @bp.route('/quiz/<quiz_id>/submit', methods=['POST'])
@@ -200,7 +203,7 @@ def submit_quiz(quiz_id):
     
     answers = []
     for question in questions:
-        question_id = question['id']  # Accessing question id properly
+        question_id = question['question_id']  # Accessing question id properly
         option_id = request.form.get(str(question_id))
         
         if option_id is None:
@@ -219,4 +222,4 @@ def submit_quiz(quiz_id):
         )
         result_handler.create_result(result)
     
-    return render_template('student/quiz_submit.html', quiz=quiz)
+    return render_template('student/quiz_submit.html', quiz=quiz, questions = questions)

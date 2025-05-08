@@ -1,0 +1,488 @@
+/* base.css - Shadcn UI inspired design for Quiz Master */
+
+/* ==================== */
+/* CSS Reset & Variables */
+/* ==================== */
+:root {
+    --background: hsl(0, 0%, 100%);
+    --foreground: hsl(222.2, 84%, 4.9%);
+    --card: hsl(0, 0%, 100%);
+    --card-foreground: hsl(222.2, 84%, 4.9%);
+    --popover: hsl(0, 0%, 100%);
+    --popover-foreground: hsl(222.2, 84%, 4.9%);
+    --primary: hsl(222.2, 47.4%, 11.2%);
+    --primary-foreground: hsl(210, 40%, 98%);
+    --secondary: hsl(210, 40%, 96.1%);
+    --secondary-foreground: hsl(222.2, 47.4%, 11.2%);
+    --muted: hsl(210, 40%, 96.1%);
+    --muted-foreground: hsl(215.4, 16.3%, 46.9%);
+    --accent: hsl(210, 40%, 96.1%);
+    --accent-foreground: hsl(222.2, 47.4%, 11.2%);
+    --destructive: hsl(0, 84.2%, 60.2%);
+    --destructive-foreground: hsl(210, 40%, 98%);
+    --border: hsl(214.3, 31.8%, 91.4%);
+    --input: hsl(214.3, 31.8%, 91.4%);
+    --ring: hsl(222.2, 84%, 4.9%);
+    --radius: 0.5rem;
+    --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  }
+  
+  @media (prefers-color-scheme: none) {
+    :root {
+      --background: hsl(222.2, 84%, 4.9%);
+      --foreground: hsl(210, 40%, 98%);
+      --card: hsl(222.2, 84%, 4.9%);
+      --card-foreground: hsl(210, 40%, 98%);
+      --popover: hsl(222.2, 84%, 4.9%);
+      --popover-foreground: hsl(210, 40%, 98%);
+      --primary: hsl(210, 40%, 98%);
+      --primary-foreground: hsl(222.2, 47.4%, 11.2%);
+      --secondary: hsl(217.2, 32.6%, 17.5%);
+      --secondary-foreground: hsl(210, 40%, 98%);
+      --muted: hsl(217.2, 32.6%, 17.5%);
+      --muted-foreground: hsl(215, 20.2%, 65.1%);
+      --accent: hsl(217.2, 32.6%, 17.5%);
+      --accent-foreground: hsl(210, 40%, 98%);
+      --destructive: hsl(0, 62.8%, 30.6%);
+      --destructive-foreground: hsl(210, 40%, 98%);
+      --border: hsl(217.2, 32.6%, 17.5%);
+      --input: hsl(217.2, 32.6%, 17.5%);
+      --ring: hsl(212.7, 26.8%, 83.9%);
+    }
+  }
+  
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--background);
+    color: var(--foreground);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+  
+  /* ==================== */
+  /* Typography */
+  /* ==================== */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    line-height: 1.2;
+    margin-bottom: 1rem;
+  }
+  
+  h1 {
+    font-size: 2rem;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+  }
+  
+  h3 {
+    font-size: 1.25rem;
+  }
+  
+  p {
+    margin-bottom: 1rem;
+  }
+  
+  a {
+    color: var(--primary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+  
+  a:hover:has( > p) {
+    color: hsl(222.2, 47.4%, 11.2%);
+  }
+  
+  /* ==================== */
+  /* Layout */
+  /* ==================== */
+  #root {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  
+  /* ==================== */
+  /* Navigation */
+  /* ==================== */
+  #nav {
+    border-bottom: 1px solid var(--border);
+    background-color: var(--background);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  
+  .navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  .menu {
+    display: flex;
+    gap: 1.5rem;
+  }
+  
+  .menu a {
+    padding: 0.5rem 0;
+    font-weight: 500;
+    transition: color 0.2s ease;
+  }
+  
+  .menu a:hover {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  
+  /* ==================== */
+  /* Notifications */
+  /* ==================== */
+  #notifications {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 100;
+    max-width: 400px;
+  }
+  
+  .noti {
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+    border-radius: var(--radius);
+    list-style: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    animation: slideIn 0.3s ease;
+  }
+  
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  .noti.success {
+    background-color: hsl(142.1, 76.2%, 36.3%);
+    color: white;
+  }
+  
+  .noti.error {
+    background-color: var(--destructive);
+    color: var(--destructive-foreground);
+  }
+  
+  .noti.info {
+    background-color: hsl(221.2, 83.2%, 53.3%);
+    color: white;
+  }
+  
+  /* ==================== */
+  /* Forms */
+  /* ==================== */
+  form {
+    width: 100%;
+    max-width: 350px;
+    margin: 0 auto;
+  }
+  
+  .form-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  }
+  
+  label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--foreground);
+    align-self: flex-start;
+    padding: .25rem;
+  }
+  
+  input, select, textarea {
+    width: 100%;
+    padding: 0.5rem;
+    font-size: 1rem;
+    border: 1px solid var(--input);
+    border-radius: var(--radius);
+    background-color: var(--background);
+    color: var(--foreground);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 2px var(--ring);
+  }
+  
+  input[type="submit"], button {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius);
+    font-weight: 500;
+    cursor: pointer;
+    max-width: 200px;
+    transition: background-color 0.2s ease;
+  }
+  
+  input[type="submit"]:hover, button:hover {
+    background-color: hsl(222.2, 47.4%, 16.2%);
+  }
+  
+  /* ==================== */
+  /* Login/Register Pages */
+  /* ==================== */
+
+  .login.css form, .register.css form {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    border-radius: var(--radius);
+    background-color: var(--card);
+  }
+  
+  /* ==================== */
+  /* Classes and Quizzes as Tiles */
+  /* ==================== */
+  .classes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+    max-width: 800px;
+  }
+  
+  ._class, .quiz {
+    display: block;
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    aspect-ratio: 1/1;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  
+  ._class:hover, .quiz:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    text-decoration: none;
+  }
+  
+  ._class h2, .quiz h2 {
+    margin-bottom: 0.5rem;
+    color: var(--foreground);
+  }
+  
+  ._class p, .quiz p {
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+  }
+  
+  /* Join Class Form */
+  .class {
+    aspect-ratio: 1/1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .class form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    width: 100%;
+    height: 100%;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .class form input {
+    width: 100%;
+    margin-bottom: 0.5rem;
+    text-align: center;
+  }
+  
+  .new_class {
+    white-space: nowrap;
+    width: 100%;
+    padding: 0.75rem;
+    margin-top: 0.5rem;
+  }
+  
+  /* ==================== */
+  /* Title Section */
+  /* ==================== */
+  .title {
+    margin-bottom: 2rem;
+  }
+  
+  .title .name {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  
+  /* ==================== */
+  /* Class Details Page */
+  /* ==================== */
+  .panel {
+    display: flex;
+    gap: 2rem;
+    margin-top: 1.5rem;
+  }
+  
+  .panel .left {
+    flex: 1;
+  }
+  
+  .class_details {
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+  }
+  
+  .class_details p:first-child {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+  }
+  
+  .class_details p:last-child {
+    color: var(--muted-foreground);
+  }
+  
+  .quizzes {
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    background-color: var(--card);
+    border: 1px solid var(--border);
+  }
+  
+  .quizzes a p {
+    font-weight: 1000;
+    margin-bottom: 1.5rem;
+    aspect-ratio: 1 / 1;
+    font-size: 2em;
+    color: var(--muted-foreground);
+  }
+  
+  /* Quizzes as tiles */
+  .quizzes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .quizzes li, .quizzes p {
+    list-style: none;
+    aspect-ratio: 1/1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius);
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .quizzes li:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .quizzes li a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+    height: 100%;
+    padding: 1rem;
+    transition: color 0.2s ease;
+    font-weight: 500;
+  }
+  
+  .quizzes li a:hover {
+    color: var(--primary);
+  }
+  
+  /* ==================== */
+  /* Responsive Design */
+  /* ==================== */
+  @media (max-width: 768px) {
+    .panel {
+      flex-direction: column;
+    }
+    
+    .navbar {
+      flex-direction: column;
+      gap: 1rem;
+    }
+    
+    .menu {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
+    .classes, .quizzes {
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .classes, .quizzes {
+      grid-template-columns: 1fr;
+    }
+    
+    form {
+      padding: 1rem;
+    }
+  }
+
+.right form {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row;
+    gap: .2em;
+}
+
+.right input[type="submit"] {
+    width: fit-content;
+}

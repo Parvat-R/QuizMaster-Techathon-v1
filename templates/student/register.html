@@ -4,6 +4,8 @@
     <title>Login | Quiz Master</title>
 {% endblock %}
 {% block content %}
+<div>
+
     <h1>Register As A Student.</h1>
     <p>Welcome Back! We are glad to see you again.</p>
     <form action="{{ url_for('student.register') }}" method="post">
@@ -32,4 +34,5 @@
         </div>
     </form>
     <p>Already have an account? <a href="{{ url_for('student.login') }}">Login</a></p>
-{% endblock %}
+</div>
+    {% endblock %}

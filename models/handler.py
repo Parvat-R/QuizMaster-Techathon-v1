@@ -315,3 +315,6 @@ class ResultHandler :
     
     def get_class_attended_quizzes(self, class_id: str):
         return self.collection.find({'class_id': class_id}).distinct('quiz_id')
+    
+    def get_result_by_student_and_question(self, student_id, question_id):
+        return self.collection.find({'student_id': student_id, 'question_id': question_id})

@@ -7,8 +7,8 @@
                 <p>Created On:</p>
                 <p>{{class_.created_on}}</p>
             </div>
+            <p>Quizzes:</p>
             <div class="quizzes">
-                <p>Quizzes:</p>
                 {% for i in quizzes %}
                     <li><a href="{{ url_for('teacher.quiz', quiz_id = i.quiz_id) }}">{{i.title}}</a></li>
                 {% endfor %}
@@ -24,12 +24,10 @@
                 {% for i in class_.students %}
                     <li>{{i}}</li>
                 {% endfor %}
-                <li>
                     <form action="{{ url_for('teacher.class_add_student', class_id = class_.class_id) }}" method="post">
                         <input type="text" name="username" id="username" placeholder="username">
                         <input type="submit" value="+">
                     </form>
-                </li>
             </ul>
         </div>
     </div>
