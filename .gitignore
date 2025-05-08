@@ -2,3 +2,4 @@ env
 .pycache
 waste
 .env
+__pycache__
