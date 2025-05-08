@@ -207,6 +207,9 @@ class QuizHandler:
             return quiz.quiz_id
         return None
     
+    def update_quiz(self, quiz_id, data):
+        return self.collection.update_one({'quiz_id': quiz_id}, {'$set': data})
+    
     def change_quiz_title(self, quiz_id: str, title: str):
         return self.collection.update_one({'quiz_id': quiz_id}, {'$set': {'title': title}})
     
@@ -256,6 +259,9 @@ class QuestionHandler:
     def __init__(self, handler: Handler):
         self.handler = handler
         self.collection = handler.questions
+        
+    def update_question(self, question_id: str, data: dict):
+        return self.collection.update_one({'question_id': question_id}, {'$set': data})
 
     def get_question(self, question_id: str):
         return self.collection.find_one({'question_id': question_id})
@@ -311,6 +317,7 @@ class ResultHandler :
         return self.collection.find({'quiz_id': quiz_id}).distinct('student_id')
     
     def get_student_attended_quizzes(self, student_id: str):
+        
         return self.collection.find({'student_id': student_id}).distinct('quiz_id')
     
     def get_class_attended_quizzes(self, class_id: str):
@@ -321,3 +328,6 @@ class ResultHandler :
     
     def get_result_by_student_and_quiz(self, student_id, quiz_id):
         return self.collection.find({'student_id': student_id, 'quiz_id': quiz_id})
+    
+    def delete_quiz_results(self, quiz_id: str):
+        return self.collection.delete_many({'quiz_id': quiz_id})

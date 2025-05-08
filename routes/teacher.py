@@ -7,7 +7,7 @@ from flask import (
 from utils import generate_uuid
 from utils.gemini_api import generate_quiz_questions, create_quiz_prompt, process_questions
 from models.models import MCQType, Teacher, Session, Class, Question, Quiz, QuizPrompt, TrueOrFalseType
-from models.handler import Handler, StudentHandler, TeacherHandler, SessionHandler, ClassHandler, QuizHandler, QuestionHandler
+from models.handler import Handler, StudentHandler, TeacherHandler, SessionHandler, ResultHandler, ClassHandler, QuizHandler, QuestionHandler
 
 bp = Blueprint('teacher', __name__, url_prefix='/teacher')
 
@@ -18,6 +18,7 @@ session_handler = SessionHandler(handler)
 quiz_handler = QuizHandler(handler)
 question_handler = QuestionHandler(handler)
 class_handler = ClassHandler(handler)
+result_handler = ResultHandler(handler)
 
 
 
@@ -205,6 +206,19 @@ def class_add_student(class_id):
 
 
 """ QUIZ FUNCTIONS """
+# @bp.route('/quiz/<quiz_id>')
+# def quiz(quiz_id):
+#     quiz = quiz_handler.get_quiz(quiz_id)
+#     questions = []
+    
+#     if not quiz:
+#         return redirect(url_for('teacher.index'))
+    
+#     for question_id in quiz_handler.get_quiz_questions(quiz_id):
+#         questions.append(question_handler.get_question(question_id))
+    
+#     return render_template('teacher/quiz.html', quiz = quiz, questions = questions)
+
 @bp.route('/quiz/<quiz_id>')
 def quiz(quiz_id):
     quiz = quiz_handler.get_quiz(quiz_id)
@@ -213,10 +227,52 @@ def quiz(quiz_id):
     if not quiz:
         return redirect(url_for('teacher.index'))
     
-    for question_id in quiz_handler.get_quiz_questions(quiz_id):
-        questions.append(question_handler.get_question(question_id))
+    question_data = {}
     
-    return render_template('teacher/quiz.html', quiz = quiz, questions = questions)
+    for question_id in quiz_handler.get_quiz_questions(quiz_id):
+        _q = question_handler.get_question(question_id)
+        questions.append(_q)
+        question_data[question_id] = _q
+    
+    # Get students who have attended this quiz
+    student_ids = result_handler.get_quiz_attended_students(quiz_id)
+    
+    # Group results by student for easier processing in template
+    students_with_results = {}
+    for student_id in student_ids:
+        # Get student details from student handler
+        student = student_handler.get_student(student_id)
+        if not student:
+            continue
+            
+        # Get all results for this student on this quiz
+        student_answers = list(result_handler.get_result_by_student_and_quiz(student_id, quiz_id))
+        
+        # Calculate correct answers for this student
+        correct_answers = 0
+        for answer in student_answers:
+            question = question_data.get(answer['question_id'])
+            if question:
+                if question['type'] == 'mcq':
+                    if answer['option_id'] in question['data']['correct_options']:
+                        correct_answers += 1
+                elif question['type'] == 'trueorfalse':
+                    if (answer['option_id'] == 'true' and question['data']['answer'] == True) or \
+                       (answer['option_id'] == 'false' and question['data']['answer'] == False):
+                        correct_answers += 1
+        
+        students_with_results[student_id] = {
+            'name': student.get('name'),
+            'results': student_answers,
+            'correct_answers': correct_answers,
+            'total_questions': len(questions)
+        }
+    
+    return render_template('teacher/quiz.html', 
+                          quiz=quiz, 
+                          questions=questions, 
+                          students=students_with_results)
+    
 
 @bp.get('/quiz/create/<class_id>')
 def quiz_create(class_id):
@@ -352,32 +408,161 @@ def quiz_create_post(class_id):
         return jsonify({'error': f'Failed to create quiz: {str(e)}'}), 500
 
 
-@bp.route('/quiz/<quiz_id>/edit', methods=['GET'])
+@bp.route('/quiz/edit/<quiz_id>', methods=['GET', 'POST'])
 def quiz_edit(quiz_id):
-    quiz = quiz_handler.get_quiz(quiz_id)
+    # GET request - render the edit page with quiz data
+    if request.method == 'GET':
+        # Get the quiz data
+        quiz = quiz_handler.get_quiz(quiz_id)
+        if not quiz:
+            flash('Quiz not found', 'error')
+            return redirect(url_for('teacher.quizzes'))
+        
+        # Get class information
+        class_ = class_handler.get_class(quiz['class_id'])
+        
+        # Get all questions for this quiz
+        questions = {}
+        for q_id in quiz['question_ids']:
+            question = question_handler.get_question(q_id)
+            if question:
+                questions[q_id] = question
+        
+        return render_template('teacher/quiz_edit.html', quiz=quiz, questions=questions, class_=class_)
     
-    if not quiz:
-        flash(f"Quiz #{quiz_id} not found!", "error")
-        return redirect(url_for('teacher.index'))
-    
-    # Check if current teacher is the owner of the quiz
-    if quiz['teacher_id'] != session.get('user_id', ''):
-        flash("You don't have permission to edit this quiz", "error")
-        return redirect(url_for('teacher.index'))
-    
-    # Get questions for the quiz
-    questions = []
-    for question_id in quiz_handler.get_quiz_questions(quiz_id):
-        question_data = question_handler.get_question(question_id)
-        if question_data:
-            questions.append(question_data)
-    
-    # Get classes for assignment
-    teacher_id = session.get('user_id', '')
-    classes = class_handler.get_teacher_classes(teacher_id)
-    
-    return render_template('teacher/quiz_edit.html', quiz=quiz, questions=questions, classes=classes)
-
+    # POST request - update the quiz
+    elif request.method == 'POST':
+        # Check if request is JSON
+        if not request.is_json:
+            if request.content_type and 'application/json' not in request.content_type:
+                flash('Invalid content type. Expected JSON data.', 'error')
+                return redirect(url_for('teacher.quiz_edit', quiz_id=quiz_id))
+            return jsonify({'error': 'Expected JSON data'}), 400
+        
+        try:
+            # Get existing quiz
+            existing_quiz = quiz_handler.get_quiz(quiz_id)
+            if not existing_quiz:
+                return jsonify({'error': 'Quiz not found'}), 404
+            
+            # Get quiz data from request
+            data = request.get_json()
+            
+            # Validate required fields
+            if not all(key in data for key in ['title', 'description', 'questions']):
+                return jsonify({'error': 'Missing required fields (title, description, questions)'}), 400
+            
+            # Update basic quiz properties
+            quiz_handler.update_quiz(quiz_id, {
+                'title': data['title'],
+                'description': data['description'],
+                'public': data.get('public', existing_quiz.get('public', False))
+            })
+            
+            # Get current question IDs
+            old_question_ids = existing_quiz.get('question_ids', [])
+            
+            # Process each question
+            questions_data = data['questions']
+            new_question_ids = []
+            
+            for q_id, q_data in questions_data.items():
+                # Validate question data
+                if not all(key in q_data for key in ['title', 'type']):
+                    continue  # Skip invalid questions
+                
+                question_id = None
+                
+                # Check if this is a new question or an existing one
+                is_existing = q_id in old_question_ids
+                
+                # For MCQ questions
+                if q_data['type'] == 'mcq':
+                    if not all(key in q_data for key in ['options', 'correct_options']):
+                        continue  # Skip if missing required MCQ fields
+                    
+                    # Convert options from array to dictionary format
+                    options_dict = {}
+                    for option in q_data['options']:
+                        options_dict[option['opt_id']] = option['opt_val']
+                    
+                    # Create MCQType data
+                    question_data = MCQType(
+                        title=q_data['title'],
+                        options=options_dict,
+                        correct_options=q_data['correct_options']
+                    )
+                    
+                    if is_existing:
+                        # Update existing question
+                        question_handler.update_question(q_id, {
+                            'marks': q_data.get('marks', 1.0),
+                            'data': question_data.model_dump()
+                        })
+                        question_id = q_id
+                    else:
+                        # Create new Question object
+                        new_question = Question(
+                            created_by=session.get('user_id', ''),
+                            created_on=datetime.now(),
+                            marks=q_data.get('marks', 1.0),
+                            type='mcq',
+                            data=question_data
+                        )
+                        # Save the question
+                        question_id = question_handler.create_question(new_question)
+                
+                # Add support for True/False questions
+                elif q_data['type'] == 'trueorfalse':
+                    if 'answer' not in q_data:
+                        continue  # Skip if missing required trueorfalse fields
+                    
+                    # Create TrueOrFalseType data
+                    question_data = TrueOrFalseType(
+                        title=q_data['title'],
+                        answer=bool(q_data['answer'])
+                    )
+                    
+                    if is_existing:
+                        # Update existing question
+                        question_handler.update_question(q_id, {
+                            'marks': q_data.get('marks', 1.0),
+                            'data': question_data.model_dump()
+                        })
+                        question_id = q_id
+                    else:
+                        # Create new Question object
+                        new_question = Question(
+                            created_by=session.get('user_id', ''),
+                            created_on=datetime.now(),
+                            marks=q_data.get('marks', 1.0),
+                            type='trueorfalse',
+                            data=question_data
+                        )
+                        # Save the question
+                        question_id = question_handler.create_question(new_question)
+                
+                if question_id:
+                    new_question_ids.append(question_id)
+            
+            # Update quiz with new question IDs
+            quiz_handler.update_quiz(quiz_id, {'question_ids': new_question_ids})
+            
+            # Remove results for this quiz since it has been modified
+            result_handler.delete_quiz_results(quiz_id)
+            
+            # Return success response
+            return jsonify({
+                'success': True,
+                'message': 'Quiz updated successfully',
+                'id': quiz_id,
+                'question_count': len(new_question_ids)
+            }), 200
+            
+        except Exception as e:
+            # Log the error for debugging
+            print(f"Error updating quiz: {str(e)}")
+            return jsonify({'error': f'Failed to update quiz: {str(e)}'}), 500
 
 @bp.route('/api/generate-quiz', methods=['POST'])
 def generate_quiz_endpoint():

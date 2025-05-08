@@ -1,4 +1,240 @@
 {% extends "base.html" %}
 {% block content %}
-    <h1>Home</h1>
+    <h3>Quiz Management - <span>{{ quiz.title }}</span></h3>
+    
+    <div class="panel quiz-details">
+        <h4>Quiz Details</h4>
+        <p><strong>Description:</strong> {{ quiz.description }}</p>
+        <p><strong>Created On:</strong> {{ quiz.created_on }}</p>
+        <p><strong>Class ID:</strong> {{ quiz.class_id }}</p>
+        <p><strong>Public:</strong> {{ "Yes" if quiz.public else "No" }}</p>
+    </div>
+    
+    <div class="panel questions-panel">
+        <h4>Questions</h4>
+        <div class="questions">
+            {% for question in questions %}
+                <div class="question">
+                    <h5>Question {{ loop.index }}: {{ question.data.title }}</h5>
+                    
+                    {% if question.type == 'mcq' %}
+                        <p><strong>Type:</strong> Multiple Choice</p>
+                        <div class="options">
+                            {% for option_id, option_text in question.data.options.items() %}
+                                <div class="option {% if option_id in question.data.correct_options %}correct{% endif %}">
+                                    <span class="option-marker">{{ "✓" if option_id in question.data.correct_options else "✗" }}</span>
+                                    <span class="option-text">{{ option_text }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% elif question.type == 'trueorfalse' %}
+                        <p><strong>Type:</strong> True or False</p>
+                        <div class="options">
+                            <div class="option {% if question.data.answer == true %}correct{% endif %}">
+                                <span class="option-marker">{{ "✓" if question.data.answer == true else "✗" }}</span>
+                                <span class="option-text">True</span>
+                            </div>
+                            <div class="option {% if question.data.answer == false %}correct{% endif %}">
+                                <span class="option-marker">{{ "✓" if question.data.answer == false else "✗" }}</span>
+                                <span class="option-text">False</span>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="panel students-panel">
+        <h4>Student Results</h4>
+        {% if students %}
+            <div class="student-list">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student Name</th>
+                            <th>Score</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student_id, student_data in students.items() %}
+                            <tr>
+                                <td>{{ student_data.name }}</td>
+                                <td>{{ student_data.correct_answers }} / {{ student_data.total_questions }}</td>
+                                <td>
+                                    <button class="btn view-results" 
+                                            data-student-id="{{ student_id }}"
+                                            onclick="toggleStudentResults('{{ student_id }}')">
+                                        View Responses
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="student-results" id="results-{{ student_id }}" style="display: none;">
+                                <td colspan="3">
+                                    <div class="student-responses">
+                                        <h5>Responses from {{ student_data.name }}</h5>
+                                        {% for result in student_data.results %}
+                                            {% set question = questions|selectattr('question_id', 'equalto', result.question_id)|first %}
+                                            {% if question %}
+                                                <div class="response">
+                                                    <p><strong>Question:</strong> {{ question.data.title }}</p>
+                                                    
+                                                    {% if question.type == 'mcq' %}
+                                                        <p><strong>Student's Answer:</strong> 
+                                                            {{ question.data.options.get(result.option_id, "No answer") }}
+                                                            {% if result.option_id in question.data.correct_options %}
+                                                                <span class="correct">✓ Correct</span>
+                                                            {% else %}
+                                                                <span class="incorrect">✗ Incorrect</span>
+                                                            {% endif %}
+                                                        </p>
+                                                        <p><strong>Correct Answer(s):</strong> 
+                                                            {% for correct_option in question.data.correct_options %}
+                                                                {{ question.data.options.get(correct_option, "") }}{% if not loop.last %}, {% endif %}
+                                                            {% endfor %}
+                                                        </p>
+                                                    {% elif question.type == 'trueorfalse' %}
+                                                        <p><strong>Student's Answer:</strong> 
+                                                            {{ result.option_id|title }}
+                                                            {% if (result.option_id == 'true' and question.data.answer == true) or 
+                                                                  (result.option_id == 'false' and question.data.answer == false) %}
+                                                                <span class="correct">✓ Correct</span>
+                                                            {% else %}
+                                                                <span class="incorrect">✗ Incorrect</span>
+                                                            {% endif %}
+                                                        </p>
+                                                        <p><strong>Correct Answer:</strong> {{ "True" if question.data.answer else "False" }}</p>
+                                                    {% endif %}
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="no-results">No students have attempted this quiz yet.</p>
+        {% endif %}
+    </div>
+    
+    <div class="actions">
+        <a href="{{ url_for('teacher.quiz_edit', quiz_id=quiz.quiz_id) }}" class="btn">Edit Quiz</a>
+        <a href="{{ url_for('teacher.class_with_id', class_id=quiz.class_id) }}" class="btn secondary">Back to Quizzes</a>
+    </div>
+    
+    <script>
+        function toggleStudentResults(studentId) {
+            const resultsRow = document.getElementById('results-' + studentId);
+            if (resultsRow.style.display === 'none') {
+                // Hide all other results first
+                document.querySelectorAll('.student-results').forEach(row => {
+                    row.style.display = 'none';
+                });
+                
+                // Show this student's results
+                resultsRow.style.display = 'table-row';
+            } else {
+                resultsRow.style.display = 'none';
+            }
+        }
+    </script>
+    
+    <style>
+        .panel {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        
+        .question {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .option {
+            margin: 8px 0;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        
+        .option.correct {
+            background-color: rgba(46, 204, 113, 0.1);
+        }
+        
+        .option-marker {
+            display: inline-block;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .student-list table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .student-list th, .student-list td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .student-responses {
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+        }
+        
+        .response {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #ccc;
+        }
+        
+        .correct {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+        
+        .incorrect {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        
+        .btn {
+            background-color: #4a6fa5;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            text-decoration: none;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        
+        .btn.secondary {
+            background-color: #7f8c8d;
+        }
+        
+        .btn.view-results {
+            padding: 5px 10px;
+            font-size: 0.9em;
+        }
+        
+        .actions {
+            margin-top: 20px;
+        }
+        
+        .no-results {
+            color: #7f8c8d;
+            font-style: italic;
+        }
+    </style>
 {% endblock %}
