@@ -21,6 +21,7 @@ result_handler = ResultHandler(handler)
 def before_request():
     if request.endpoint in ['static', 'student.login', 'student.register']:
         return
+    print(request.endpoint)
     session_id = session.get('session_id', None)
     user_id = session.get('user_id', None)
     ip_address =  request.remote_addr if request.remote_addr else '-1'
@@ -37,13 +38,15 @@ def before_request():
         if not student:
             return redirect(url_for('student.login'))
         
-        session['user_data'] = student    
+        session['user_data'] = student
+        return None
     else:
         return redirect(url_for('student.login'))
 
 @bp.after_request
 def after_request(response):
     session.pop("user_data", None)
+    return response  # Return the response object
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -72,6 +75,8 @@ def login():
             )
             
             session["session_id"] = session_handler.create_session(_session)
+            session["user_id"] = student['id']  # Added missing user_id in session
+            session["user_type"] = "student"    # Added missing user_type in session
             
             return redirect(url_for('student.index'))
         
@@ -91,12 +96,17 @@ def register():
     if request.method == 'GET':
         return render_template('student/register.html')
     elif request.method == 'POST':
+        try:
+            dob = datetime.datetime.strptime(request.form['dob'], '%d-%m-%Y')  # Fixed date format
+        except ValueError:
+            return render_template('student/register.html', error='Invalid date format. Use dd-mm-yyyy')
+            
         student = Student(
             username=request.form['username'],
             password=request.form['password'],
             name=request.form['name'],
             email=request.form['email'],
-            dob=datetime.datetime.strptime(request.form['dob'], 'dd-mm-yyyy'),
+            dob=dob,
             created_on=datetime.datetime.now()
         )
         
@@ -119,14 +129,14 @@ def index():
     for class_ in class_handler.get_student_classes(session['user_id']):
         classes.append(class_)
     
-    return render_template('student/index.html', classes = classes)
-
+    return render_template('student/index.html', classes=classes)
 
 @bp.route('/class/<class_id>')
 def class_(class_id):
-    if class_handler.get_class(class_id) is None:
+    class_obj = class_handler.get_class(class_id)
+    if class_obj is None:
         flash(f"Class #{class_id} not found!", "error")
-        return redirect("student.class_") 
+        return redirect(url_for("student.index"))  # Fixed redirect
     
     quizzes = []
     
@@ -138,7 +148,12 @@ def class_(class_id):
             _quiz['attended'] = _quiz.id in attended_quizzes
             quizzes.append(_quiz)
     
-    return render_template('student/class.html', class_ = class_handler.get_class(class_id))
+    return render_template('student/class.html', class_=class_obj, quizzes=quizzes)  # Added quizzes to template
+
+
+@bp.route('/attend')
+def attend_quiz():
+    return render_template("student/attend_quiz.html")
 
 
 @bp.route('/quiz/<quiz_id>')
@@ -147,13 +162,13 @@ def quiz(quiz_id):
     questions = []
     
     if not quiz:
+        flash(f"Quiz #{quiz_id} not found!", "error")
         return redirect(url_for('student.index'))
     
     for question_id in quiz_handler.get_quiz_questions(quiz_id):
         questions.append(question_handler.get_question(question_id))
     
-    return render_template('student/quiz.html', quiz = quiz, questions = questions)
-
+    return render_template('student/quiz.html', quiz=quiz, questions=questions)
 
 @bp.route('/quiz/<quiz_id>/submit', methods=['POST'])
 def submit_quiz(quiz_id):
@@ -163,23 +178,30 @@ def submit_quiz(quiz_id):
         flash(f'Quiz #{quiz_id} does not exist!', 'error')
         return redirect(url_for('student.index'))
     
-    questions_ids = []
+    questions = []
     
     for question_id in quiz_handler.get_quiz_questions(quiz_id):
-        questions_ids.append(question_handler.get_question(question_id))
+        questions.append(question_handler.get_question(question_id))
     
     answers = []
-    for question_id in questions_ids:
-        answers.append(request.form.get(str(question_id)))
+    for question in questions:
+        question_id = question['id']  # Accessing question id properly
+        option_id = request.form.get(str(question_id))
+        
+        if option_id is None:
+            flash(f'Please answer question {question_id}!', 'error')
+            return redirect(url_for('student.quiz', quiz_id=quiz_id))
+        
+        answers.append(option_id)
+        
         result = Result(
             student_id=session['user_id'],
             quiz_id=quiz_id,
             question_id=question_id,
-            option_id=answers[-1],
-            marks=0,
+            option_id=option_id,
+            marks=0,  # You might want to calculate marks here
             created_on=datetime.datetime.now()
         )
         result_handler.create_result(result)
     
-    return render_template('student/quiz_submit.html', quiz = quiz)
-    
+    return render_template('student/quiz_submit.html', quiz=quiz)

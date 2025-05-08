@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{%% block title %%}{%% endblock %%} | Quiz Master</title>
+    <title>{% block title %}{% endblock %} | Quiz Master</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
-    {%% block head %%}{%% endblock %%}
+    {% block head %}{% endblock %}
 </head>
 <body>
     <div id="nav">
@@ -14,15 +14,25 @@
             <div class="right">
                 <div class="menu">
                     <a href="/">Home</a>
-                    <a href="/student">Student</a>
-                    <a href="/teacher">Teacher</a>
+                    {% if session.get('user_type', None) == 'student' %}
+                    <a href="{{ url_for('student.classes') }}">Classes</a>
+                    <a href="{{ url_for('student.profile') }}">Profile</a>
+                    <a href="{{ url_for('student.attend_quiz') }}">Attend Quiz</a>
+                    {% elif session.get('user_type', None) == 'teacher' %}
+                    <a href="{{ url_for('teacher.classes') }}">Classes</a>
+                    <a href="{{ url_for('teacher.profile') }}">Profile</a>
+                    <a href="{{ url_for('teacher.create_quiz') }}">Create Quiz</a>
+                    {% else %}
+                    <a href="{{ url_for('student.login') }}">Student</a>
+                    <a href="{{ url_for('teacher.login') }}">Teacher</a>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
     <div id="root">
-        {%% block content %%}{%% endblock %%}
+        {% block content %}{% endblock %}
     </div>
 </body>
 </html>

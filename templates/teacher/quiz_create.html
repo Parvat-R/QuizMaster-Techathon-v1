@@ -1,0 +1,482 @@
+{% extends "base.html" %}
+{% block content %}
+
+    <div id="quiz">
+        <div class="head">
+            <input id="title" name="title" value="Untitled Quiz" />
+            <input id="description" name="description" value="Description" />
+        </div>
+        <div id="questions">
+            <!-- Questions will be rendered here -->
+        </div>
+        <div id="controls">
+            <button id="gen">Generate Question</button>
+            <button id="add">Add Question</button>
+            <button id="save">Save</button>
+        </div>
+        <div id="json-preview-container">
+            <h3>JSON Preview:</h3>
+            <pre id="json-preview"></pre>
+        </div>
+    </div>
+
+<script>
+// Store questions as an object with numeric keys
+var questions = {
+    0: {
+        title: "Question here?",
+        description: "Small Description",
+        type: "mcq",
+        options: [
+            {
+                opt_id: "o1",
+                opt_val: "Option 1"
+            },
+            {
+                opt_id: "o2",
+                opt_val: "Option 2"
+            },
+            {
+                opt_id: "o3",
+                opt_val: "Option 3"
+            },
+            {
+                opt_id: "o4",
+                opt_val: "Option 4"
+            }
+        ],
+        correct_options: ["o1", "o2"]
+    }
+};
+
+// Keep track of the next question ID
+var nextQuestionId = 1;
+
+// Add a new question to the questions object
+function add_question(questionData = null) {
+    // If no question data is provided, create a default question
+    if (!questionData) {
+        questionData = {
+            title: "New Question",
+            description: "Question Description",
+            type: "mcq",
+            options: [
+                { opt_id: `q${nextQuestionId}_o1`, opt_val: "Option 1" },
+                { opt_id: `q${nextQuestionId}_o2`, opt_val: "Option 2" },
+                { opt_id: `q${nextQuestionId}_o3`, opt_val: "Option 3" },
+                { opt_id: `q${nextQuestionId}_o4`, opt_val: "Option 4" }
+            ],
+            correct_options: [`q${nextQuestionId}_o1`]
+        };
+    }
+    
+    // Add the question to our questions object
+    questions[nextQuestionId] = questionData;
+    
+    // Increment the nextQuestionId for the next question
+    nextQuestionId++;
+    
+    // Re-render all questions
+    render_questions();
+    
+    // Update JSON preview
+    updateJsonPreview();
+}
+
+// Remove a question from the questions object
+function remove_question(questionId) {
+    // Delete the question with the given ID
+    delete questions[questionId];
+    
+    // Re-render all questions
+    render_questions();
+    
+    // Update JSON preview
+    updateJsonPreview();
+}
+
+// Render all questions to the DOM
+function render_questions() {
+    // Get the container element
+    const questionsContainer = document.getElementById('questions');
+    
+    // Clear current content
+    questionsContainer.innerHTML = '';
+    
+    // Loop through all questions and render each one
+    Object.keys(questions).forEach(questionId => {
+        const question = questions[questionId];
+        
+        // Create question container
+        const questionDiv = document.createElement('div');
+        questionDiv.classList.add('question');
+        questionDiv.dataset.id = questionId;
+        
+        // Create question header
+        const header = document.createElement('div');
+        header.classList.add('question-header');
+        
+        // Create question title input
+        const titleInput = document.createElement('input');
+        titleInput.classList.add('question-title');
+        titleInput.value = question.title;
+        titleInput.placeholder = 'Question Title';
+        titleInput.addEventListener('input', (e) => {
+            questions[questionId].title = e.target.value;
+            updateJsonPreview();
+        });
+        
+        // Create question description input
+        const descInput = document.createElement('input');
+        descInput.classList.add('question-description');
+        descInput.value = question.description;
+        descInput.placeholder = 'Question Description';
+        descInput.addEventListener('input', (e) => {
+            questions[questionId].description = e.target.value;
+            updateJsonPreview();
+        });
+        
+        // Create remove button
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = 'Remove';
+        removeBtn.classList.add('remove-question');
+        removeBtn.addEventListener('click', () => remove_question(questionId));
+        
+        // Append elements to header
+        header.appendChild(titleInput);
+        header.appendChild(descInput);
+        header.appendChild(removeBtn);
+        
+        // Create options container
+        const optionsDiv = document.createElement('div');
+        optionsDiv.classList.add('options');
+        
+        // Add each option
+        question.options.forEach((option, index) => {
+            const optionDiv = document.createElement('div');
+            optionDiv.classList.add('option');
+            
+            // Create checkbox for marking correct answers
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `${questionId}_${option.opt_id}`;
+            checkbox.checked = question.correct_options.includes(option.opt_id);
+            checkbox.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    // Add to correct options if checked
+                    if (!questions[questionId].correct_options.includes(option.opt_id)) {
+                        questions[questionId].correct_options.push(option.opt_id);
+                    }
+                } else {
+                    // Remove from correct options if unchecked
+                    questions[questionId].correct_options = questions[questionId].correct_options.filter(
+                        id => id !== option.opt_id
+                    );
+                }
+                updateJsonPreview();
+            });
+            
+            // Create option text input
+            const optInput = document.createElement('input');
+            optInput.classList.add('option-text');
+            optInput.value = option.opt_val;
+            optInput.placeholder = `Option ${index + 1}`;
+            optInput.addEventListener('input', (e) => {
+                questions[questionId].options[index].opt_val = e.target.value;
+                updateJsonPreview();
+            });
+            
+            // Add label for checkbox
+            const label = document.createElement('label');
+            label.htmlFor = `${questionId}_${option.opt_id}`;
+            label.textContent = 'Correct';
+            
+            // Append elements to option div
+            optionDiv.appendChild(checkbox);
+            optionDiv.appendChild(label);
+            optionDiv.appendChild(optInput);
+            
+            // Append option to options container
+            optionsDiv.appendChild(optionDiv);
+        });
+        
+        // Add "Add Option" button
+        const addOptionBtn = document.createElement('button');
+        addOptionBtn.textContent = 'Add Option';
+        addOptionBtn.classList.add('add-option');
+        addOptionBtn.addEventListener('click', () => {
+            // Generate new option ID
+            const newOptId = `q${questionId}_o${question.options.length + 1}`;
+            
+            // Add new option to question
+            questions[questionId].options.push({
+                opt_id: newOptId,
+                opt_val: `Option ${question.options.length + 1}`
+            });
+            
+            // Re-render questions
+            render_questions();
+            
+            // Update JSON preview
+            updateJsonPreview();
+        });
+        
+        // Append header, options, and add option button to question div
+        questionDiv.appendChild(header);
+        questionDiv.appendChild(optionsDiv);
+        questionDiv.appendChild(addOptionBtn);
+        
+        // Append question to container
+        questionsContainer.appendChild(questionDiv);
+    });
+}
+
+// Function to save the quiz
+function save_quiz() {
+    // Create quiz data object
+    const quizData = {
+        title: document.getElementById('title').value,
+        description: document.getElementById('description').value,
+        questions: questions
+    };
+    
+    // Send data to server via fetch API
+    fetch('', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(quizData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        alert('Quiz saved successfully!');
+        console.log('Success:', data);
+        // Optionally redirect to the quiz page
+        // window.location.href = `/quiz/${data.id}`;
+    })
+    .catch((error) => {
+        alert('Error saving quiz!');
+        console.error('Error:', error);
+    });
+}
+
+// Function to generate a question using AI (placeholder)
+function generate_question() {
+    // This would typically call an AI API to generate a question
+    // For now, we'll just add a placeholder
+    
+    alert('Generating question...');
+    
+    // Add a new question with generic content
+    add_question({
+        title: "AI Generated Question",
+        description: "This would be a question generated by AI",
+        type: "mcq",
+        options: [
+            { opt_id: `q${nextQuestionId}_o1`, opt_val: "Generated Option 1" },
+            { opt_id: `q${nextQuestionId}_o2`, opt_val: "Generated Option 2" },
+            { opt_id: `q${nextQuestionId}_o3`, opt_val: "Generated Option 3" },
+            { opt_id: `q${nextQuestionId}_o4`, opt_val: "Generated Option 4" }
+        ],
+        correct_options: [`q${nextQuestionId}_o1`]
+    });
+}
+
+// Function to update the JSON preview
+function updateJsonPreview() {
+    const quizData = {
+        title: document.getElementById('title').value,
+        description: document.getElementById('description').value,
+        questions: questions
+    };
+    
+    document.getElementById('json-preview').textContent = 
+        JSON.stringify(quizData, null, 2);
+}
+
+// Add event listeners when the document is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Render the initial questions
+    render_questions();
+    
+    // Initialize JSON preview
+    updateJsonPreview();
+    
+    // Add event listeners to buttons
+    document.getElementById('add').addEventListener('click', () => add_question());
+    document.getElementById('save').addEventListener('click', save_quiz);
+    document.getElementById('gen').addEventListener('click', generate_question);
+    
+    // Add event listeners to title and description inputs
+    document.getElementById('title').addEventListener('focus', function() {
+        if (this.value === 'Untitled Quiz') {
+            this.value = '';
+        }
+    });
+    
+    document.getElementById('title').addEventListener('input', function() {
+        updateJsonPreview();
+    });
+    
+    document.getElementById('description').addEventListener('focus', function() {
+        if (this.value === 'Description') {
+            this.value = '';
+        }
+    });
+    
+    document.getElementById('description').addEventListener('input', function() {
+        updateJsonPreview();
+    });
+});
+</script>
+
+<style>
+/* Basic styling for the quiz creator */
+#quiz {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+}
+
+.head {
+    margin-bottom: 20px;
+}
+
+#title {
+    display: block;
+    width: 100%;
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+#description {
+    display: block;
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.question {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.question-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.question-title {
+    flex-grow: 1;
+    font-size: 18px;
+    font-weight: bold;
+    padding: 5px;
+    margin-right: 10px;
+}
+
+.question-description {
+    flex-grow: 2;
+    padding: 5px;
+    margin-right: 10px;
+}
+
+.remove-question, .add-option {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.add-option {
+    background-color: #4CAF50;
+    margin-top: 10px;
+}
+
+.options {
+    margin-bottom: 15px;
+}
+
+.option {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.option-text {
+    flex-grow: 1;
+    padding: 5px;
+    margin-left: 10px;
+}
+
+#controls {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+#controls button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+#add {
+    background-color: #4CAF50;
+    color: white;
+}
+
+#save {
+    background-color: #2196F3;
+    color: white;
+}
+
+#gen {
+    background-color: #FF9800;
+    color: white;
+}
+
+label {
+    margin: 0 10px;
+}
+
+#json-preview-container {
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 15px;
+    margin-top: 20px;
+}
+
+#json-preview {
+    background-color: #272822;
+    color: #f8f8f2;
+    padding: 15px;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-family: 'Courier New', Courier, monospace;
+    white-space: pre-wrap;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <title>Login | Quiz Master</title>
+{% endblock %}
+{% block content %}
+    <h1>Login As A Student.</h1>
+    <p>Welcome Back! We are glad to see you again.</p>
+    <form action="" method="post">
+        <div class="form-group">
+            <label for="username">Name: </label>
+            <input type="text" name="Name" id="Name" placeholder="John Doe"><br><br>
+        </div>
+        <div class="form-group">
+            <label for="username">Dob: </label>
+            <input type="date" name="dob" id="dob" placeholder="dd-mm-yyyy"><br><br>
+        </div>
+        <div class="form-group">
+            <label for="username">Username: </label>
+            <input type="text" name="username" id="username" placeholder="john_doe"><br><br>
+        </div>
+        <div class="form-group">
+            <label for="username">Email: </label>
+            <input type="text" name="email" id="email" placeholder="john_doe@email.com"><br><br>
+        </div>
+        <div class="form-group">
+            <label for="password">Password: </label>
+            <input type="password" name="password" id="password" placeholder="password"><br><br>
+        </div>
+        <div class="form-group">
+            <input type="submit" value="Login"><br>
+        </div>
+    </form>
+    <p>Don't have an account? <a href="{{ url_for('student.register') }}">Register</a></p>
+{% endblock %}

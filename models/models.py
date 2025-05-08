@@ -108,3 +108,19 @@ class Session(BaseModel):
     user_type: str
     created_on: datetime
     ip_address: str
+
+
+
+# --------------------------------------
+# Prompt Model
+# --------------------------------------
+class QuizPrompt(BaseModel):
+    syllabus: str
+    tags: List[str]
+    image_data: Optional[str] = None
+    
+    number_of_questions: int
+    hard_questions_percent: float
+    easy_questions_percent: float
+    mcq_questions_percent: float
+    true_or_false_questions_percent: float

@@ -3,11 +3,9 @@ from flask_cors import CORS
 import routes
 
 app = Flask(__name__)
-CORS(app)
-
+app.secret_key = "secret key"
 
 @app.route("/")
-@app.route("/index")
 def index():
     return render_template('index.html')
 
