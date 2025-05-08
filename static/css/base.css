@@ -406,6 +406,7 @@
     aspect-ratio: 1 / 1;
     font-size: 2em;
     color: var(--muted-foreground);
+    width: 150px;
   }
   
   /* Quizzes as tiles */
@@ -448,6 +449,7 @@
     padding: 1rem;
     transition: color 0.2s ease;
     font-weight: 500;
+    width: 150px;
   }
   
   .quizzes li a:hover {
