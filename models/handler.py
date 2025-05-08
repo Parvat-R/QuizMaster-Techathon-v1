@@ -318,3 +318,6 @@ class ResultHandler :
     
     def get_result_by_student_and_question(self, student_id, question_id):
         return self.collection.find({'student_id': student_id, 'question_id': question_id})
+    
+    def get_result_by_student_and_quiz(self, student_id, quiz_id):
+        return self.collection.find({'student_id': student_id, 'quiz_id': quiz_id})

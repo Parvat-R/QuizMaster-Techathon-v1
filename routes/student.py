@@ -171,22 +171,53 @@ def attend_quiz():
     return render_template("student/attend_quiz.html")
 
 
+# @bp.route('/quiz/<quiz_id>')
+# def quiz(quiz_id):
+#     quiz = quiz_handler.get_quiz(quiz_id)
+#     questions = []
+    
+#     if not quiz:
+#         flash(f"Quiz #{quiz_id} not found!", "error")
+#         return redirect(url_for('student.index'))
+    
+#     for question_id in quiz_handler.get_quiz_questions(quiz_id):
+#         questions.append(question_handler.get_question(question_id))
+    
+#     if session['user_id'] in result_handler.get_quiz_attended_students(quiz_id):
+#         student_result = result_handler.get_result_by_student_and_quiz(session['user_id'], quiz_id)
+#         student_result = { i.question_id: i.option_id for i in student_result }
+#         return render_template('student/quiz_submit.html', quiz=quiz, questions = questions, student_result=student_result)
+    
+#     return render_template('student/quiz.html', quiz=quiz, questions=questions)
+
+
 @bp.route('/quiz/<quiz_id>')
 def quiz(quiz_id):
     quiz = quiz_handler.get_quiz(quiz_id)
-    questions = []
     
     if not quiz:
         flash(f"Quiz #{quiz_id} not found!", "error")
         return redirect(url_for('student.index'))
     
+    # Get all questions for this quiz
+    questions = []
     for question_id in quiz_handler.get_quiz_questions(quiz_id):
         questions.append(question_handler.get_question(question_id))
     
+    # Check if student has already taken this quiz
     if session['user_id'] in result_handler.get_quiz_attended_students(quiz_id):
-        return render_template('student/quiz_submit.html', quiz=quiz, questions = questions, result_handler = result_handler)
+        # Get student's results and format them as a dictionary for easy lookup
+        results = result_handler.get_result_by_student_and_quiz(session['user_id'], quiz_id)
+        student_result = {result['question_id']: result['option_id'] for result in results}
+        
+        return render_template('student/quiz_submit.html', 
+                              quiz=quiz, 
+                              questions=questions,
+                              student_result=student_result)
     
+    # If student hasn't taken the quiz yet, show the quiz taking page
     return render_template('student/quiz.html', quiz=quiz, questions=questions)
+
 
 @bp.route('/quiz/<quiz_id>/submit', methods=['POST'])
 def submit_quiz(quiz_id):
@@ -222,4 +253,4 @@ def submit_quiz(quiz_id):
         )
         result_handler.create_result(result)
     
-    return render_template('student/quiz_submit.html', quiz=quiz, questions = questions)
+    return redirect(url_for('student.quiz', quiz_id=quiz_id))

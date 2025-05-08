@@ -6,24 +6,23 @@
             <p>Description: {{ quiz.description }}</p>
             <p>Created On: {{ quiz.created_on }}</p>
         </div>
-        </div>
         
         <div class="questions">
             {% for question in questions %}
-                {% set student_result = result_handler.get_result_by_student_and_question(session['user_id'], question.question_id) %}
+                {% set student_answer = student_result.get(question.question_id, None) %}
                 
-                <div class="question">
+                <div class="question {% if student_answer in question.data.correct_options %}correct{% else %}incorrect{% endif %}">
                     <h4>Question {{ loop.index }}: {{ question.data.title }}</h4>
                     
                     {% if question.type == 'mcq' %}
                         <div class="options">
                             {% for option_id, option_text in question.data.options.items() %}
                                 <div class="option 
-                                    {% if student_result and student_result.option_id == option_id %}selected{% endif %}
+                                    {% if student_answer == option_id %}selected{% endif %}
                                     {% if option_id in question.data.correct_options %}correct{% endif %}">
                                     <span class="option_text">{{ option_text }}</span>
                                     
-                                    {% if student_result and student_result.option_id == option_id %}
+                                    {% if student_answer == option_id %}
                                         <span class="your_answer">(Your answer)</span>
                                     {% endif %}
                                     
@@ -37,11 +36,11 @@
                     {% elif question.type == 'trueorfalse' %}
                         <div class="options">
                             <div class="option 
-                                {% if student_result and student_result.option_id == 'true' %}selected{% endif %}
+                                {% if student_answer == 'true' %}selected{% endif %}
                                 {% if question.data.answer == true %}correct{% endif %}">
                                 <span class="option_text">True</span>
                                 
-                                {% if student_result and student_result.option_id == 'true' %}
+                                {% if student_answer == 'true' %}
                                     <span class="your_answer">(Your answer)</span>
                                 {% endif %}
                                 
@@ -51,11 +50,11 @@
                             </div>
                             
                             <div class="option 
-                                {% if student_result and student_result.option_id == 'false' %}selected{% endif %}
+                                {% if student_answer == 'false' %}selected{% endif %}
                                 {% if question.data.answer == false %}correct{% endif %}">
                                 <span class="option_text">False</span>
                                 
-                                {% if student_result and student_result.option_id == 'false' %}
+                                {% if student_answer == 'false' %}
                                     <span class="your_answer">(Your answer)</span>
                                 {% endif %}
                                 
@@ -72,113 +71,5 @@
         <div class="actions">
             <a href="{{ url_for('student.index') }}" class="btn">Back to Dashboard</a>
         </div>
-        
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="messages">
-                    {% for category, message in messages %}
-                        <div class="{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
     </div>
-    
-    <style>
-        .panel {
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .results_summary {
-            margin-bottom: 20px;
-            padding: 10px;
-            background-color: #f0f0f0;
-            border-radius: 5px;
-        }
-        
-        .question {
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .question.correct {
-            border-left: 3px solid #2ecc71;
-            padding-left: 10px;
-        }
-        
-        .question.incorrect {
-            border-left: 3px solid #e74c3c;
-            padding-left: 10px;
-        }
-        
-        .option {
-            margin: 5px 0;
-            padding: 5px;
-        }
-        
-        .option.selected {
-            background-color: #f0f0f0;
-        }
-        
-        .option.correct {
-            background-color: #d5f5e3;
-        }
-        
-        .option.selected.correct {
-            background-color: #2ecc71;
-            color: white;
-        }
-        
-        .option.selected:not(.correct) {
-            background-color: #fadbd8;
-        }
-        
-        .your_answer {
-            font-style: italic;
-            margin-left: 10px;
-        }
-        
-        .correct_answer {
-            font-weight: bold;
-            margin-left: 10px;
-            color: #2ecc71;
-        }
-        
-        .result_info {
-            margin-top: 10px;
-        }
-        
-        .correct_message {
-            color: #2ecc71;
-        }
-        
-        .incorrect_message {
-            color: #e74c3c;
-        }
-        
-        .btn {
-            background-color: #4a6fa5;
-            color: white;
-            padding: 8px 16px;
-            border: none;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            margin-top: 10px;
-        }
-        
-        .error {
-            color: #e74c3c;
-            margin: 10px 0;
-        }
-        
-        .success {
-            color: #2ecc71;
-            margin: 10px 0;
-        }
-    </style>
 {% endblock %}
