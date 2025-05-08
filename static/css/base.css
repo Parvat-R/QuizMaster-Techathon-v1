@@ -363,17 +363,25 @@
     display: flex;
     gap: 2rem;
     margin-top: 1.5rem;
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
   }
   
   .panel .left {
     flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    width: 100%;
+    border-right: 1px solid #ddd;
+    padding: 1em;
   }
   
   .class_details {
-    padding: 1.5rem;
-    border-radius: var(--radius);
     background-color: var(--card);
-    border: 1px solid var(--border);
     margin-bottom: 1.5rem;
   }
   
@@ -395,7 +403,6 @@
   
   .quizzes a p {
     font-weight: 1000;
-    margin-bottom: 1.5rem;
     aspect-ratio: 1 / 1;
     font-size: 2em;
     color: var(--muted-foreground);
@@ -403,9 +410,13 @@
   
   /* Quizzes as tiles */
   .quizzes {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1rem;
+    width: 100%;
   }
   
   .quizzes li, .quizzes p {
@@ -419,6 +430,7 @@
     border: 1px solid var(--border);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    margin: 0;
   }
   
   .quizzes li:hover {
