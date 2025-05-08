@@ -5,7 +5,7 @@ from flask import (
     get_flashed_messages
 )
 from utils import generate_uuid
-from utils.chatgpt_api import generate_quiz_questions, create_quiz_prompt, process_questions
+from utils.gemini_api import generate_quiz_questions, create_quiz_prompt, process_questions
 from models.models import MCQType, Teacher, Session, Class, Question, Quiz, QuizPrompt, TrueOrFalseType
 from models.handler import Handler, StudentHandler, TeacherHandler, SessionHandler, ClassHandler, QuizHandler, QuestionHandler
 
@@ -417,5 +417,6 @@ def generate_quiz_endpoint():
         return jsonify(processed_questions), 200
     
     except Exception as e:
+        print(e)
         return jsonify({"error": str(e)}), 500
 

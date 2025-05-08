@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+    <h3>Quiz - <span>{{ quiz.title }}</span></h3>
+    <div class="panel">
+        <div class="quiz_details">
+            <p>Description: {{ quiz.description }}</p>
+            <p>Created On: {{ quiz.created_on }}</p>
+        </div>
+        
+        <form action="{{ url_for('student.submit_quiz', quiz_id=quiz.quiz_id) }}" method="POST">
+            <div class="questions">
+                {% for question in questions %}
+                    <div class="question">
+                        <h4>Question {{ loop.index }}: {{ question.data.title }}</h4>
+                        <p>Marks: {{ question.marks }}</p>
+                        
+                        {% if question.type == 'mcq' %}
+                            {% for option_id, option_text in question.data.options.items() %}
+                                <div class="option">
+                                    <input type="radio" name="{{ question.question_id }}" 
+                                           id="{{ question.question_id }}_{{ option_id }}" 
+                                           value="{{ option_id }}" required>
+                                    <label for="{{ question.question_id }}_{{ option_id }}">{{ option_text }}</label>
+                                </div>
+                            {% endfor %}
+                        {% elif question.type == 'trueorfalse' %}
+                            <div class="option">
+                                <input type="radio" name="{{ question.question_id }}" 
+                                       id="{{ question.question_id }}_true" 
+                                       value="true" required>
+                                <label for="{{ question.question_id }}_true">True</label>
+                            </div>
+                            <div class="option">
+                                <input type="radio" name="{{ question.question_id }}" 
+                                       id="{{ question.question_id }}_false" 
+                                       value="false" required>
+                                <label for="{{ question.question_id }}_false">False</label>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <div class="actions">
+                <button type="submit" class="btn">Submit Quiz</button>
+            </div>
+        </form>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="messages">
+                    {% for category, message in messages %}
+                        <div class="{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+    </div>
+    
+    <style>
+        .panel {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .question {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .option {
+            margin: 5px 0;
+        }
+        
+        .btn {
+            background-color: #4a6fa5;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .error {
+            color: #e74c3c;
+            margin: 10px 0;
+        }
+        
+        .success {
+            color: #2ecc71;
+            margin: 10px 0;
+        }
+    </style>
+{% endblock %}

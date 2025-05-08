@@ -4,3 +4,4 @@ flask_cors
 requests
 pydantic[email]
 google-generativeai
+pillow

@@ -145,9 +145,9 @@ def class_with_id(class_id):
     for _quiz in quiz_handler.get_student_class_quizzes(user_id, class_id):
         _quiz = quiz_handler.get_quiz(_quiz)
         if _quiz:
-            _quiz['attended'] = _quiz.quiz_id in attended_quizzes
+            _quiz['attended'] = _quiz.get('quiz_id') in attended_quizzes
             quizzes.append(
-                _quiz.get_quiz(_quiz)
+                _quiz
             )
     
     return render_template('student/class.html', class_=class_obj, quizzes=quizzes)  # Added quizzes to template

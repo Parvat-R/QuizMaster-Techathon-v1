@@ -1,539 +1,990 @@
 {% extends "base.html" %}
 {% block content %}
 
-    <div id="quiz">
-        <div class="main">
-            <h2>Class: {{ class_.name }}</h2>
+<div id="quiz">
+    <div class="main">
+        <h2>Class: {{ class_.name }}</h2>
+    </div>
+    <div class="head">
+        <input id="title" name="title" value="Untitled Quiz" />
+        <input id="description" name="description" value="Description" />
+    </div>
+    <div id="questions">
+        <!-- Questions will be rendered here -->
+    </div>
+    <div id="controls">
+        <button id="gen" class="primary-btn">Generate Questions</button>
+        <button id="add">Add Question</button>
+        <button id="save">Save</button>
+    </div>
+    <div id="json-preview-container">
+        <h3>JSON Preview:</h3>
+        <pre id="json-preview"></pre>
+    </div>
+</div>
+
+<!-- AI Generator Modal -->
+<div id="generatorModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Generate Quiz Questions with AI</h2>
+
+        <div class="form-group">
+            <label for="syllabus">Syllabus Content:</label>
+            <textarea id="syllabus" rows="6" placeholder="Enter syllabus content or learning objectives..."></textarea>
         </div>
-        <div class="head">
-            <input id="title" name="title" value="Untitled Quiz" />
-            <input id="description" name="description" value="Description" />
+
+        <div class="form-group">
+            <label for="tags">Tags (comma separated):</label>
+            <input type="text" id="tags" placeholder="e.g. math, algebra, equations">
         </div>
-        <div id="questions">
-            <!-- Questions will be rendered here -->
+
+        <div class="form-group">
+            <label for="num-questions">Number of Questions:</label>
+            <input type="number" id="num-questions" min="1" max="20" value="5">
         </div>
-        <div id="controls">
-            <button id="gen">Generate Question</button>
-            <button id="add">Add Question</button>
-            <button id="save">Save</button>
+
+        <div class="form-group half">
+            <label>Question Difficulty:</label>
+            <div class="slider-container">
+                <span>Easy</span>
+                <input type="range" id="difficulty-slider" min="0" max="100" value="70">
+                <span>Hard</span>
+            </div>
+            <div class="percentages">
+                <span id="easy-percent">70%</span> Easy /
+                <span id="hard-percent">30%</span> Hard
+            </div>
         </div>
-        <div id="json-preview-container">
-            <h3>JSON Preview:</h3>
-            <pre id="json-preview"></pre>
+
+        <div class="form-group half">
+            <label>Question Types:</label>
+            <div class="slider-container">
+                <span>MCQ</span>
+                <input type="range" id="type-slider" min="0" max="100" value="70">
+                <span>T/F</span>
+            </div>
+            <div class="percentages">
+                <span id="mcq-percent">70%</span> MCQ /
+                <span id="tf-percent">30%</span> True/False
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="image-upload">Upload Image for Context (optional):</label>
+            <input type="file" id="image-upload" accept="image/*">
+            <div id="image-preview-container" style="display: none;">
+                <img id="image-preview" src="#" alt="Preview">
+                <button id="remove-image">Remove</button>
+            </div>
+        </div>
+
+        <div class="form-buttons">
+            <button id="generate-btn" class="primary-btn">Generate Questions</button>
+            <button id="cancel-btn" class="secondary-btn">Cancel</button>
+        </div>
+
+        <div id="loading-indicator" style="display: none;">
+            <div class="spinner"></div>
+            <p>Generating questions with AI...</p>
         </div>
     </div>
-
-<script>
-// Store questions as an object with numeric keys
-var questions = {
-    0: {
-        title: "Question here?",
-        description: "Small Description",
-        type: "mcq",
-        options: [
-            {
-                opt_id: "o1",
-                opt_val: "Option 1"
-            },
-            {
-                opt_id: "o2",
-                opt_val: "Option 2"
-            },
-            {
-                opt_id: "o3",
-                opt_val: "Option 3"
-            },
-            {
-                opt_id: "o4",
-                opt_val: "Option 4"
-            }
-        ],
-        correct_options: ["o1", "o2"]
-    }
-};
-
-// Keep track of the next question ID
-var nextQuestionId = 1;
-
-// Add a new question to the questions object
-function add_question(questionData = null) {
-    // If no question data is provided, create a default question
-    if (!questionData) {
-        questionData = {
-            title: "New Question",
-            description: "Question Description",
-            type: "mcq",
-            options: [
-                { opt_id: `q${nextQuestionId}_o1`, opt_val: "Option 1" },
-                { opt_id: `q${nextQuestionId}_o2`, opt_val: "Option 2" },
-                { opt_id: `q${nextQuestionId}_o3`, opt_val: "Option 3" },
-                { opt_id: `q${nextQuestionId}_o4`, opt_val: "Option 4" }
-            ],
-            correct_options: [`q${nextQuestionId}_o1`]
-        };
-    }
-    
-    // Add the question to our questions object
-    questions[nextQuestionId] = questionData;
-    
-    // Increment the nextQuestionId for the next question
-    nextQuestionId++;
-    
-    // Re-render all questions
-    render_questions();
-    
-    // Update JSON preview
-    updateJsonPreview();
-}
-
-// Remove a question from the questions object
-function remove_question(questionId) {
-    // Delete the question with the given ID
-    delete questions[questionId];
-    
-    // Re-render all questions
-    render_questions();
-    
-    // Update JSON preview
-    updateJsonPreview();
-}
-
-// Remove an option from a question
-function remove_option(questionId, optIndex) {
-    // Get the question
-    const question = questions[questionId];
-    
-    // Make sure we don't remove the last option
-    if (question.options.length <= 1) {
-        alert("Cannot remove the last option. Questions must have at least one option.");
-        return;
-    }
-    
-    // Get the option being removed
-    const removedOption = question.options[optIndex];
-    
-    // Remove the option from the options array
-    question.options.splice(optIndex, 1);
-    
-    // Remove the option from correct_options if it was selected
-    if (question.correct_options.includes(removedOption.opt_id)) {
-        question.correct_options = question.correct_options.filter(
-            id => id !== removedOption.opt_id
-        );
-    }
-    
-    // Re-render all questions
-    render_questions();
-    
-    // Update JSON preview
-    updateJsonPreview();
-}
-
-// Render all questions to the DOM
-function render_questions() {
-    // Get the container element
-    const questionsContainer = document.getElementById('questions');
-    
-    // Clear current content
-    questionsContainer.innerHTML = '';
-    
-    // Loop through all questions and render each one
-    Object.keys(questions).forEach(questionId => {
-        const question = questions[questionId];
-        
-        // Create question container
-        const questionDiv = document.createElement('div');
-        questionDiv.classList.add('question');
-        questionDiv.dataset.id = questionId;
-        
-        // Create question header
-        const header = document.createElement('div');
-        header.classList.add('question-header');
-        
-        // Create question title input
-        const titleInput = document.createElement('input');
-        titleInput.classList.add('question-title');
-        titleInput.value = question.title;
-        titleInput.placeholder = 'Question Title';
-        titleInput.addEventListener('input', (e) => {
-            questions[questionId].title = e.target.value;
-            updateJsonPreview();
-        });
-        
-        // Create question description input
-        const descInput = document.createElement('input');
-        descInput.classList.add('question-description');
-        descInput.value = question.description;
-        descInput.placeholder = 'Question Description';
-        descInput.addEventListener('input', (e) => {
-            questions[questionId].description = e.target.value;
-            updateJsonPreview();
-        });
-        
-        // Create remove button
-        const removeBtn = document.createElement('button');
-        removeBtn.textContent = 'Remove';
-        removeBtn.classList.add('remove-question');
-        removeBtn.addEventListener('click', () => remove_question(questionId));
-        
-        // Append elements to header
-        header.appendChild(titleInput);
-        header.appendChild(descInput);
-        header.appendChild(removeBtn);
-        
-        // Create options container
-        const optionsDiv = document.createElement('div');
-        optionsDiv.classList.add('options');
-        
-        // Add each option
-        question.options.forEach((option, index) => {
-            const optionDiv = document.createElement('div');
-            optionDiv.classList.add('option');
-            
-            // Create checkbox for marking correct answers
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.id = `${questionId}_${option.opt_id}`;
-            checkbox.checked = question.correct_options.includes(option.opt_id);
-            checkbox.addEventListener('change', (e) => {
-                if (e.target.checked) {
-                    // Add to correct options if checked
-                    if (!questions[questionId].correct_options.includes(option.opt_id)) {
-                        questions[questionId].correct_options.push(option.opt_id);
-                    }
-                } else {
-                    // Remove from correct options if unchecked
-                    questions[questionId].correct_options = questions[questionId].correct_options.filter(
-                        id => id !== option.opt_id
-                    );
-                }
-                updateJsonPreview();
-            });
-            
-            // Create option text input
-            const optInput = document.createElement('input');
-            optInput.classList.add('option-text');
-            optInput.value = option.opt_val;
-            optInput.placeholder = `Option ${index + 1}`;
-            optInput.addEventListener('input', (e) => {
-                questions[questionId].options[index].opt_val = e.target.value;
-                updateJsonPreview();
-            });
-            
-            // Add label for checkbox
-            const label = document.createElement('label');
-            label.htmlFor = `${questionId}_${option.opt_id}`;
-            label.textContent = 'Correct';
-            
-            // Create remove option button
-            const removeOptBtn = document.createElement('button');
-            removeOptBtn.textContent = 'Remove';
-            removeOptBtn.classList.add('remove-option');
-            removeOptBtn.addEventListener('click', () => remove_option(questionId, index));
-            
-            // Append elements to option div
-            optionDiv.appendChild(checkbox);
-            optionDiv.appendChild(label);
-            optionDiv.appendChild(optInput);
-            optionDiv.appendChild(removeOptBtn);
-            
-            // Append option to options container
-            optionsDiv.appendChild(optionDiv);
-        });
-        
-        // Add "Add Option" button
-        const addOptionBtn = document.createElement('button');
-        addOptionBtn.textContent = 'Add Option';
-        addOptionBtn.classList.add('add-option');
-        addOptionBtn.addEventListener('click', () => {
-            // Generate new option ID
-            const newOptId = `q${questionId}_o${question.options.length + 1}`;
-            
-            // Add new option to question
-            questions[questionId].options.push({
-                opt_id: newOptId,
-                opt_val: `Option ${question.options.length + 1}`
-            });
-            
-            // Re-render questions
-            render_questions();
-            
-            // Update JSON preview
-            updateJsonPreview();
-        });
-        
-        // Append header, options, and add option button to question div
-        questionDiv.appendChild(header);
-        questionDiv.appendChild(optionsDiv);
-        questionDiv.appendChild(addOptionBtn);
-        
-        // Append question to container
-        questionsContainer.appendChild(questionDiv);
-    });
-}
-
-// Function to save the quiz
-function save_quiz() {
-    // Create quiz data object
-    const quizData = {
-        title: document.getElementById('title').value,
-        description: document.getElementById('description').value,
-        questions: questions
-    };
-    
-    // Send data to server via fetch API
-    fetch('', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(quizData)
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
-    })
-    .then(data => {
-        alert('Quiz saved successfully!');
-        console.log('Success:', data);
-        // Optionally redirect to the quiz page
-        // window.location.href = `/quiz/${data.id}`;
-    })
-    .catch((error) => {
-        alert('Error saving quiz!');
-        console.error('Error:', error);
-    });
-}
-
-// Function to generate a question using AI (placeholder)
-function generate_question() {
-    // This would typically call an AI API to generate a question
-    // For now, we'll just add a placeholder
-    
-    alert('Generating question...');
-    
-    // Add a new question with generic content
-    add_question({
-        title: "AI Generated Question",
-        description: "This would be a question generated by AI",
-        type: "mcq",
-        options: [
-            { opt_id: `q${nextQuestionId}_o1`, opt_val: "Generated Option 1" },
-            { opt_id: `q${nextQuestionId}_o2`, opt_val: "Generated Option 2" },
-            { opt_id: `q${nextQuestionId}_o3`, opt_val: "Generated Option 3" },
-            { opt_id: `q${nextQuestionId}_o4`, opt_val: "Generated Option 4" }
-        ],
-        correct_options: [`q${nextQuestionId}_o1`]
-    });
-}
-
-// Function to update the JSON preview
-function updateJsonPreview() {
-    const quizData = {
-        title: document.getElementById('title').value,
-        description: document.getElementById('description').value,
-        questions: questions
-    };
-    
-    document.getElementById('json-preview').textContent = 
-        JSON.stringify(quizData, null, 2);
-}
-
-// Add event listeners when the document is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Render the initial questions
-    render_questions();
-    
-    // Initialize JSON preview
-    updateJsonPreview();
-    
-    // Add event listeners to buttons
-    document.getElementById('add').addEventListener('click', () => add_question());
-    document.getElementById('save').addEventListener('click', save_quiz);
-    document.getElementById('gen').addEventListener('click', generate_question);
-    
-    // Add event listeners to title and description inputs
-    document.getElementById('title').addEventListener('focus', function() {
-        if (this.value === 'Untitled Quiz') {
-            this.value = '';
-        }
-    });
-    
-    document.getElementById('title').addEventListener('input', function() {
-        updateJsonPreview();
-    });
-    
-    document.getElementById('description').addEventListener('focus', function() {
-        if (this.value === 'Description') {
-            this.value = '';
-        }
-    });
-    
-    document.getElementById('description').addEventListener('input', function() {
-        updateJsonPreview();
-    });
-});
-</script>
+</div>
 
 <style>
-/* Basic styling for the quiz creator */
-#quiz {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-    font-family: Arial, sans-serif;
-}
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
 
-.head {
-    margin-bottom: 20px;
-}
+    .modal-content {
+        position: relative;
+        background-color: #fefefe;
+        margin: 5% auto;
+        padding: 30px;
+        border: 1px solid #888;
+        border-radius: 8px;
+        width: 70%;
+        max-width: 800px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        animation: modalIn 0.3s ease-out;
+    }
 
-#title {
-    display: block;
-    width: 100%;
-    font-size: 24px;
-    font-weight: bold;
-    margin-bottom: 10px;
-    padding: 5px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
+    @keyframes modalIn {
+        from {
+            opacity: 0;
+            transform: translateY(-50px);
+        }
 
-#description {
-    display: block;
-    width: 100%;
-    padding: 5px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    margin-bottom: 20px;
-}
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
 
-.question {
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 15px;
-    margin-bottom: 20px;
-}
+    .close {
+        position: absolute;
+        right: 20px;
+        top: 15px;
+        color: #aaa;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
 
-.question-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 15px;
-}
+    .close:hover,
+    .close:focus {
+        color: #333;
+    }
 
-.question-title {
-    flex-grow: 1;
-    font-size: 18px;
-    font-weight: bold;
-    padding: 5px;
-    margin-right: 10px;
-}
+    .form-group {
+        margin-bottom: 20px;
+    }
 
-.question-description {
-    flex-grow: 2;
-    padding: 5px;
-    margin-right: 10px;
-}
+    .form-group.half {
+        width: 48%;
+        display: inline-block;
+        margin-right: 2%;
+    }
 
-.remove-question {
-    background-color: #f44336;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-}
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+    }
 
-.options {
-    margin-bottom: 15px;
-}
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+    }
 
-.option {
-    display: flex;
-    align-items: center;
-    margin-bottom: 8px;
-}
+    .slider-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
+    }
 
-.option-text {
-    flex-grow: 1;
-    padding: 5px;
-    margin-left: 10px;
-    margin-right: 10px;
-}
+    .slider-container span {
+        width: 50px;
+    }
 
-.remove-option {
-    background-color: #f44336;
-    color: white;
-    border: none;
-    padding: 3px 8px;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 12px;
-}
+    .slider-container input {
+        flex: 1;
+        margin: 0 10px;
+    }
 
-.add-option {
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-top: 10px;
-}
+    .percentages {
+        text-align: center;
+        font-size: 14px;
+        color: #666;
+    }
 
-#controls {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 20px;
-    margin-bottom: 20px;
-}
+    .form-buttons {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 20px;
+    }
 
-#controls button {
-    padding: 10px 15px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 16px;
-}
+    .form-buttons button {
+        margin-left: 10px;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
 
-#add {
-    background-color: #4CAF50;
-    color: white;
-}
+    .primary-btn {
+        background-color: #4f46e5;
+        color: white;
+        border: none;
+    }
 
-#save {
-    background-color: #2196F3;
-    color: white;
-}
+    .primary-btn:hover {
+        background-color: #4338ca;
+    }
 
-#gen {
-    background-color: #FF9800;
-    color: white;
-}
+    .secondary-btn {
+        background-color: #f3f4f6;
+        color: #333;
+        border: 1px solid #ddd;
+    }
 
-label {
-    margin: 0 10px;
-}
+    .secondary-btn:hover {
+        background-color: #e5e7eb;
+    }
 
-#json-preview-container {
-    background-color: #f5f5f5;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 15px;
-    margin-top: 20px;
-}
+    /* Image preview */
+    #image-preview-container {
+        margin-top: 10px;
+        position: relative;
+        max-width: 300px;
+    }
 
-#json-preview {
-    background-color: #272822;
-    color: #f8f8f2;
-    padding: 15px;
-    border-radius: 4px;
-    overflow-x: auto;
-    font-family: 'Courier New', Courier, monospace;
-    white-space: pre-wrap;
-}
+    #image-preview {
+        max-width: 100%;
+        max-height: 200px;
+        border-radius: 4px;
+    }
+
+    #remove-image {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        font-size: 12px;
+        cursor: pointer;
+    }
+
+    /* Loading indicator */
+    #loading-indicator {
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    .spinner {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(79, 70, 229, 0.2);
+        border-radius: 50%;
+        border-top-color: #4f46e5;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+</style>
+
+<script>
+    // Store questions as an object with numeric keys
+    var questions = {
+        0: {
+            title: "Question here?",
+            description: "Small Description",
+            type: "mcq",
+            options: [
+                {
+                    opt_id: "o1",
+                    opt_val: "Option 1"
+                },
+                {
+                    opt_id: "o2",
+                    opt_val: "Option 2"
+                },
+                {
+                    opt_id: "o3",
+                    opt_val: "Option 3"
+                },
+                {
+                    opt_id: "o4",
+                    opt_val: "Option 4"
+                }
+            ],
+            correct_options: ["o1", "o2"]
+        }
+    };
+
+    // Keep track of the next question ID
+    var nextQuestionId = 1;
+
+    // Add a new question to the questions object
+    function add_question(questionData = null) {
+        // If no question data is provided, create a default question
+        if (!questionData) {
+            questionData = {
+                title: "New Question",
+                description: "Question Description",
+                type: "mcq",
+                options: [
+                    { opt_id: `q${nextQuestionId}_o1`, opt_val: "Option 1" },
+                    { opt_id: `q${nextQuestionId}_o2`, opt_val: "Option 2" },
+                    { opt_id: `q${nextQuestionId}_o3`, opt_val: "Option 3" },
+                    { opt_id: `q${nextQuestionId}_o4`, opt_val: "Option 4" }
+                ],
+                correct_options: [`q${nextQuestionId}_o1`]
+            };
+        }
+
+        // Add the question to our questions object
+        questions[nextQuestionId] = questionData;
+
+        // Increment the nextQuestionId for the next question
+        nextQuestionId++;
+
+        // Re-render all questions
+        render_questions();
+
+        // Update JSON preview
+        updateJsonPreview();
+    }
+
+    // Add multiple AI-generated questions
+    function add_ai_questions(generatedQuestions) {
+        // Check if we got valid questions
+        if (!generatedQuestions || !generatedQuestions.questions) {
+            alert("Failed to generate valid questions. Please try again.");
+            return;
+        }
+
+        // Process each generated question
+        Object.values(generatedQuestions.questions).forEach(q => {
+            if (q.type === "mcq") {
+                // Create options array from the options object
+                const options = [];
+                const optionsObj = q.data.options;
+
+                Object.keys(optionsObj).forEach(key => {
+                    options.push({
+                        opt_id: `q${nextQuestionId}_${key}`,
+                        opt_val: optionsObj[key]
+                    });
+                });
+
+                // Map the correct_options
+                const correctOptions = q.data.correct_options.map(opt =>
+                    `q${nextQuestionId}_${opt}`
+                );
+
+                // Add the formatted question
+                add_question({
+                    title: q.data.title,
+                    description: `${q.marks} marks`,
+                    type: "mcq",
+                    options: options,
+                    correct_options: correctOptions
+                });
+            } else if (q.type === "trueorfalse") {
+                // For true/false questions, create two options
+                add_question({
+                    title: q.data.title,
+                    description: `${q.marks} marks`,
+                    type: "mcq", // Using MCQ for true/false as well
+                    options: [
+                        { opt_id: `q${nextQuestionId}_true`, opt_val: "True" },
+                        { opt_id: `q${nextQuestionId}_false`, opt_val: "False" }
+                    ],
+                    correct_options: [q.data.answer ? `q${nextQuestionId}_true` : `q${nextQuestionId}_false`]
+                });
+            }
+        });
+    }
+
+    // Remove a question from the questions object
+    function remove_question(questionId) {
+        // Delete the question with the given ID
+        delete questions[questionId];
+
+        // Re-render all questions
+        render_questions();
+
+        // Update JSON preview
+        updateJsonPreview();
+    }
+
+    // Remove an option from a question
+    function remove_option(questionId, optIndex) {
+        // Get the question
+        const question = questions[questionId];
+
+        // Make sure we don't remove the last option
+        if (question.options.length <= 1) {
+            alert("Cannot remove the last option. Questions must have at least one option.");
+            return;
+        }
+
+        // Get the option being removed
+        const removedOption = question.options[optIndex];
+
+        // Remove the option from the options array
+        question.options.splice(optIndex, 1);
+
+        // Remove the option from correct_options if it was selected
+        if (question.correct_options.includes(removedOption.opt_id)) {
+            question.correct_options = question.correct_options.filter(
+                id => id !== removedOption.opt_id
+            );
+        }
+
+        // Re-render all questions
+        render_questions();
+
+        // Update JSON preview
+        updateJsonPreview();
+    }
+
+    // Render all questions to the DOM
+    function render_questions() {
+        // Get the container element
+        const questionsContainer = document.getElementById('questions');
+
+        // Clear current content
+        questionsContainer.innerHTML = '';
+
+        // Loop through all questions and render each one
+        Object.keys(questions).forEach(questionId => {
+            const question = questions[questionId];
+
+            // Create question container
+            const questionDiv = document.createElement('div');
+            questionDiv.classList.add('question');
+            questionDiv.dataset.id = questionId;
+
+            // Create question header
+            const header = document.createElement('div');
+            header.classList.add('question-header');
+
+            // Create question title input
+            const titleInput = document.createElement('input');
+            titleInput.classList.add('question-title');
+            titleInput.value = question.title;
+            titleInput.placeholder = 'Question Title';
+            titleInput.addEventListener('input', (e) => {
+                questions[questionId].title = e.target.value;
+                updateJsonPreview();
+            });
+
+            // Create question description input
+            const descInput = document.createElement('input');
+            descInput.classList.add('question-description');
+            descInput.value = question.description;
+            descInput.placeholder = 'Question Description';
+            descInput.addEventListener('input', (e) => {
+                questions[questionId].description = e.target.value;
+                updateJsonPreview();
+            });
+
+            // Create remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.textContent = 'Remove';
+            removeBtn.classList.add('remove-question');
+            removeBtn.addEventListener('click', () => remove_question(questionId));
+
+            // Append elements to header
+            header.appendChild(titleInput);
+            header.appendChild(descInput);
+            header.appendChild(removeBtn);
+
+            // Create options container
+            const optionsDiv = document.createElement('div');
+            optionsDiv.classList.add('options');
+
+            // Add each option
+            question.options.forEach((option, index) => {
+                const optionDiv = document.createElement('div');
+                optionDiv.classList.add('option');
+
+                // Create checkbox for marking correct answers
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `${questionId}_${option.opt_id}`;
+                checkbox.checked = question.correct_options.includes(option.opt_id);
+                checkbox.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        // Add to correct options if checked
+                        if (!questions[questionId].correct_options.includes(option.opt_id)) {
+                            questions[questionId].correct_options.push(option.opt_id);
+                        }
+                    } else {
+                        // Remove from correct options if unchecked
+                        questions[questionId].correct_options = questions[questionId].correct_options.filter(
+                            id => id !== option.opt_id
+                        );
+                    }
+                    updateJsonPreview();
+                });
+
+                // Create option text input
+                const optInput = document.createElement('input');
+                optInput.classList.add('option-text');
+                optInput.value = option.opt_val;
+                optInput.placeholder = `Option ${index + 1}`;
+                optInput.addEventListener('input', (e) => {
+                    questions[questionId].options[index].opt_val = e.target.value;
+                    updateJsonPreview();
+                });
+
+                // Add label for checkbox
+                const label = document.createElement('label');
+                label.htmlFor = `${questionId}_${option.opt_id}`;
+                label.textContent = 'Correct';
+
+                // Create remove option button
+                const removeOptBtn = document.createElement('button');
+                removeOptBtn.textContent = 'Remove';
+                removeOptBtn.classList.add('remove-option');
+                removeOptBtn.addEventListener('click', () => remove_option(questionId, index));
+
+                // Append elements to option div
+                optionDiv.appendChild(checkbox);
+                optionDiv.appendChild(label);
+                optionDiv.appendChild(optInput);
+                optionDiv.appendChild(removeOptBtn);
+
+                // Append option to options container
+                optionsDiv.appendChild(optionDiv);
+            });
+
+            // Add "Add Option" button
+            const addOptionBtn = document.createElement('button');
+            addOptionBtn.textContent = 'Add Option';
+            addOptionBtn.classList.add('add-option');
+            addOptionBtn.addEventListener('click', () => {
+                // Generate new option ID
+                const newOptId = `q${questionId}_o${question.options.length + 1}`;
+
+                // Add new option to question
+                questions[questionId].options.push({
+                    opt_id: newOptId,
+                    opt_val: `Option ${question.options.length + 1}`
+                });
+
+                // Re-render questions
+                render_questions();
+
+                // Update JSON preview
+                updateJsonPreview();
+            });
+
+            // Append header, options, and add option button to question div
+            questionDiv.appendChild(header);
+            questionDiv.appendChild(optionsDiv);
+            questionDiv.appendChild(addOptionBtn);
+
+            // Append question to container
+            questionsContainer.appendChild(questionDiv);
+        });
+    }
+
+    // Function to save the quiz
+    function save_quiz() {
+        // Create quiz data object
+        const quizData = {
+            title: document.getElementById('title').value,
+            description: document.getElementById('description').value,
+            questions: questions
+        };
+
+        // Send data to server via fetch API
+        fetch('', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(quizData)
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert('Quiz saved successfully!');
+                console.log('Success:', data);
+                // Optionally redirect to the quiz page
+                // window.location.href = `/quiz/${data.id}`;
+            })
+            .catch((error) => {
+                alert('Error saving quiz!');
+                console.error('Error:', error);
+            });
+    }
+
+    // Function to generate questions using the AI API
+    function generate_ai_questions() {
+        // Get form data
+        const syllabus = document.getElementById('syllabus').value.trim();
+        const tagsInput = document.getElementById('tags').value.trim();
+        const numQuestions = parseInt(document.getElementById('num-questions').value);
+
+        // Parse tags
+        const tags = tagsInput ? tagsInput.split(',').map(tag => tag.trim()) : [];
+
+        // Get percentages
+        const easyPercent = parseFloat(document.getElementById('easy-percent').textContent) / 100;
+        const hardPercent = parseFloat(document.getElementById('hard-percent').textContent) / 100;
+        const mcqPercent = parseFloat(document.getElementById('mcq-percent').textContent) / 100;
+        const tfPercent = parseFloat(document.getElementById('tf-percent').textContent) / 100;
+
+        // Validate inputs
+        if (!syllabus) {
+            alert('Please enter syllabus content');
+            return;
+        }
+
+        if (isNaN(numQuestions) || numQuestions < 1) {
+            alert('Please enter a valid number of questions');
+            return;
+        }
+
+        // Prepare data for API
+        const requestData = {
+            syllabus: syllabus,
+            tags: tags,
+            number_of_questions: numQuestions,
+            hard_questions_percent: hardPercent,
+            easy_questions_percent: easyPercent,
+            mcq_questions_percent: mcqPercent,
+            true_or_false_questions_percent: tfPercent
+        };
+
+        // Add image data if an image is selected
+        const imagePreview = document.getElementById('image-preview');
+        if (imagePreview.src && imagePreview.src !== window.location.href) {
+            // Convert image to base64 if needed or include reference
+            // This would depend on your backend implementation
+            requestData.image_data = imagePreview.src;
+        }
+
+        // Show loading indicator
+        document.getElementById('loading-indicator').style.display = 'block';
+        document.getElementById('generate-btn').disabled = true;
+
+        // Call the API
+        fetch('/teacher/api/generate-quiz', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestData)
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Hide loading indicator
+                document.getElementById('loading-indicator').style.display = 'none';
+                document.getElementById('generate-btn').disabled = false;
+
+                // Process and add questions
+                add_ai_questions(data);
+
+                // Close the modal
+                document.getElementById('generatorModal').style.display = 'none';
+
+                // Show success message
+                alert(`Successfully generated ${Object.keys(data.questions).length} questions!`);
+            })
+            .catch((error) => {
+                // Hide loading indicator
+                document.getElementById('loading-indicator').style.display = 'none';
+                document.getElementById('generate-btn').disabled = false;
+
+                // Show error
+                alert('Error generating questions: ' + error.message);
+                console.error('Error:', error);
+            });
+    }
+
+    // Function to update the JSON preview
+    function updateJsonPreview() {
+        const quizData = {
+            title: document.getElementById('title').value,
+            description: document.getElementById('description').value,
+            questions: questions
+        };
+
+        document.getElementById('json-preview').textContent =
+            JSON.stringify(quizData, null, 2);
+    }
+
+    // Function to handle image upload
+    function handleImageUpload(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                document.getElementById('image-preview').src = e.target.result;
+                document.getElementById('image-preview-container').style.display = 'block';
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // Function to handle image removal
+    function removeImage() {
+        document.getElementById('image-upload').value = '';
+        document.getElementById('image-preview').src = '#';
+        document.getElementById('image-preview-container').style.display = 'none';
+    }
+
+    // Function to update difficulty percentages
+    function updateDifficultyPercentages() {
+        const easyPercent = document.getElementById('difficulty-slider').value;
+        const hardPercent = 100 - easyPercent;
+
+        document.getElementById('easy-percent').textContent = easyPercent;
+        document.getElementById('hard-percent').textContent = hardPercent;
+    }
+
+    // Function to update question type percentages
+    function updateTypePercentages() {
+        const mcqPercent = document.getElementById('type-slider').value;
+        const tfPercent = 100 - mcqPercent;
+
+        document.getElementById('mcq-percent').textContent = mcqPercent;
+        document.getElementById('tf-percent').textContent = tfPercent;
+    }
+
+    // Add event listeners when the document is loaded
+    document.addEventListener('DOMContentLoaded', function () {
+        // Render the initial questions
+        render_questions();
+
+        // Initialize JSON preview
+        updateJsonPreview();
+
+        // Add event listeners to buttons
+        document.getElementById('add').addEventListener('click', () => add_question());
+        document.getElementById('save').addEventListener('click', save_quiz);
+
+        // Modal event listeners
+        const modal = document.getElementById('generatorModal');
+        const openModalBtn = document.getElementById('gen');
+        const closeBtn = document.querySelector('.close');
+        const cancelBtn = document.getElementById('cancel-btn');
+        const generateBtn = document.getElementById('generate-btn');
+
+        // Open modal
+        openModalBtn.addEventListener('click', () => {
+            modal.style.display = 'block';
+        });
+
+        // Close modal methods
+        closeBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        // Generate questions
+        generateBtn.addEventListener('click', generate_ai_questions);
+
+        // Image upload handlers
+        document.getElementById('image-upload').addEventListener('change', handleImageUpload);
+        document.getElementById('remove-image').addEventListener('click', removeImage);
+
+        // Slider event listeners
+        const difficultySlider = document.getElementById('difficulty-slider');
+        difficultySlider.addEventListener('input', updateDifficultyPercentages);
+
+        const typeSlider = document.getElementById('type-slider');
+        typeSlider.addEventListener('input', updateTypePercentages);
+
+        // Initialize percentages
+        updateDifficultyPercentages();
+        updateTypePercentages();
+
+        // Add event listeners to title and description inputs
+        document.getElementById('title').addEventListener('focus', function () {
+            if (this.value === 'Untitled Quiz') {
+                this.value = '';
+            }
+        });
+
+        document.getElementById('title').addEventListener('input', function () {
+            updateJsonPreview();
+        });
+
+        document.getElementById('description').addEventListener('focus', function () {
+            if (this.value === 'Description') {
+                this.value = '';
+            }
+        });
+
+        document.getElementById('description').addEventListener('input', function () {
+            updateJsonPreview();
+        });
+    });
+</script>
+<style>
+    /* Basic styling for the quiz creator */
+    #quiz {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+    }
+
+    .head {
+        margin-bottom: 20px;
+    }
+
+    #title {
+        display: block;
+        width: 100%;
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        padding: 5px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    #description {
+        display: block;
+        width: 100%;
+        padding: 5px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+
+    .question {
+        background-color: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+
+    .question-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 15px;
+    }
+
+    .question-title {
+        flex-grow: 1;
+        font-size: 18px;
+        font-weight: bold;
+        padding: 5px;
+        margin-right: 10px;
+    }
+
+    .question-description {
+        flex-grow: 2;
+        padding: 5px;
+        margin-right: 10px;
+    }
+
+    .remove-question {
+        background-color: #f44336;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .options {
+        margin-bottom: 15px;
+    }
+
+    .option {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .option-text {
+        flex-grow: 1;
+        padding: 5px;
+        margin-left: 10px;
+        margin-right: 10px;
+    }
+
+    .remove-option {
+        background-color: #f44336;
+        color: white;
+        border: none;
+        padding: 3px 8px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 12px;
+    }
+
+    .add-option {
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 10px;
+    }
+
+    #controls {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+
+    #controls button {
+        padding: 10px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    #add {
+        background-color: #4CAF50;
+        color: white;
+    }
+
+    #save {
+        background-color: #2196F3;
+        color: white;
+    }
+
+    #gen {
+        background-color: #FF9800;
+        color: white;
+    }
+
+    label {
+        margin: 0 10px;
+    }
+
+    #json-preview-container {
+        background-color: #f5f5f5;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 15px;
+        margin-top: 20px;
+    }
+
+    #json-preview {
+        background-color: #272822;
+        color: #f8f8f2;
+        padding: 15px;
+        border-radius: 4px;
+        overflow-x: auto;
+        font-family: 'Courier New', Courier, monospace;
+        white-space: pre-wrap;
+    }
 </style>
 {% endblock %}
