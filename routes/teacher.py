@@ -5,7 +5,7 @@ from flask import (
     get_flashed_messages
 )
 from utils import generate_uuid
-from utils.gemini_api import generate_quiz_questions, create_quiz_prompt, process_questions
+from utils.gemini_api_old import generate_quiz_questions, create_quiz_prompt, process_questions
 from models.models import MCQType, Teacher, Session, Class, Question, Quiz, QuizPrompt, TrueOrFalseType
 from models.handler import Handler, StudentHandler, TeacherHandler, SessionHandler, ResultHandler, ClassHandler, QuizHandler, QuestionHandler
 
@@ -254,7 +254,8 @@ def quiz(quiz_id):
             question = question_data.get(answer['question_id'])
             if question:
                 if question['type'] == 'mcq':
-                    if answer['option_id'] in question['data']['correct_options']:
+                    s_options = [i['option_id'] for i in result_handler.get_result_by_student_and_question(student_id, answer['question_id'])]
+                    if s_options == question['data']['correct_options']:
                         correct_answers += 1
                 elif question['type'] == 'trueorfalse':
                     if (answer['option_id'] == 'true' and question['data']['answer'] == True) or \
@@ -590,8 +591,9 @@ def generate_quiz_endpoint():
             true_or_false_questions_percent=request_data.get("true_or_false_questions_percent", 0.3)
         )
         
+        print(request_data, request_data.get("language"))
         # Create prompt for ChatGPT
-        prompt = create_quiz_prompt(quiz_prompt_data, teacher_id)
+        prompt = create_quiz_prompt(quiz_prompt_data, teacher_id, request_data.get("language", "english"))
         
         # Generate questions
         generated_questions = generate_quiz_questions(prompt)

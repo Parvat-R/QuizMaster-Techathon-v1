@@ -43,6 +43,29 @@
             <label for="num-questions">Number of Questions:</label>
             <input type="number" id="num-questions" min="1" max="20" value="5">
         </div>
+        <div class="form-group">
+            <label for="num-questions">Select Language:</label>
+            <select name="language" id="language">
+                <option name="english" id="english">english</option>
+                <option name="spanish" id="spanish">spanish</option>
+                <option name="french" id="french">french</option>
+                <option name="german" id="german">german</option>
+                <option name="italian" id="italian">italian</option>
+                <option name="portuguese" id="portuguese">portuguese</option>
+                <option name="chinese" id="chinese">chinese</option>
+                <option name="japanese" id="japanese">japanese</option>
+                <option name="korean" id="korean">korean</option>
+                <option name="arabic" id="arabic">arabic</option>
+                <option name="russian" id="russian">russian</option>
+                <option name="hindi" id="hindi">hindi</option>
+                <option name="bengali" id="bengali">bengali</option>
+                <option name="urdu" id="urdu">urdu</option>
+                <option name="swahili" id="swahili">swahili</option>
+                <option name="hebrew" id="hebrew">hebrew</option>
+                <option name="turkish" id="turkish">turkish</option>
+                <option name="tamil" id="tamil">tamil</option>
+            </select>
+        </div>
 
         <div class="form-group half">
             <label>Question Difficulty:</label>
@@ -461,7 +484,8 @@
             hard_questions_percent: hardPercent,
             easy_questions_percent: easyPercent,
             mcq_questions_percent: mcqPercent,
-            true_or_false_questions_percent: tfPercent
+            true_or_false_questions_percent: tfPercent,
+            language: document.getElementById('language').value
         };
 
         // Add image data if an image is selected
